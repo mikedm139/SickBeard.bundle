@@ -153,7 +153,7 @@ def SeriesSelectMenu(sender, url):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
     dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), url=url))
-    dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), url=url))
+    #dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), url=url))
     
     return dir
     
