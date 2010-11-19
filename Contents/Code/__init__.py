@@ -31,6 +31,8 @@ def Start():
 
     global TV_SECTION
     TV_SECTION = GetTvSectionID()
+    if TV_SECTION == "":
+        return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
 
 ####################################################################################################
 
@@ -62,9 +64,8 @@ def ComingEpisodes(sender):
         timeSlot    = episode.xpath('div/p[2]/span')[3].text
         updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
         #Log(updateUrl)
-        dir.Append(Function(PopupDirectoryItem(ForceRefreshMenu,title=showName,subtitle="Airs: "+timeSlot,
-            summary="Next episode: "+airsNext, thumb=Function(GetThumb, showName=showName)), type='episode',
-                url=updateUrl))
+        dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
+            summary="Next episode: "+airsNext, thumb=Function(GetThumb, showName=showName)),url=updateUrl))
     
     return dir
 
@@ -122,6 +123,8 @@ def  ShowList(sender):
         episodes = str(show.xpath('td[5]/comment()')[0])[4:-3]
         #Log(episodes)
         status  = show.xpath('td')[6].text
+        if status == None:
+            status = "Not Available"
         #Log("Status: "+status)
         showSummary = GetSummary(name)
         if showSummary == None:
@@ -140,21 +143,26 @@ def  ShowList(sender):
         #except:
         #    pass
         updateUrl = '/home/updateShow?show=' + showID +'&force=1'
-        dir.Append(Function(PopupDirectoryItem(ForceRefreshMenu, title=name, subtitle='Episodes: '+episodes,
-            summary=info, thumb=Function(GetThumb, showName=name)), type='series', url=updateUrl))
+        dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, subtitle='Episodes: '+episodes,
+            summary=info, thumb=Function(GetThumb, showName=name)), url=updateUrl))
     return dir
     
 ####################################################################################################    
 
-def ForceRefreshMenu(sender, type, url):
+def SeriesSelectMenu(sender, url):
     '''display a popup menu with the option to force a search for the selected episode/series'''
-    dir = MediaContainer(title='Force Search')
-    if type == 'episode':
-        dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this episode"), url=url))
-    elif type == 'series':
-        dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), url=url))
-    else:
-        return MessageContainer('SickBeard Plugin', L('Could not find update link'))
+    dir = MediaContainer(title='')
+    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), url=url))
+    dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), url=url))
+    
+    return dir
+    
+####################################################################################################
+
+def EpisodeSelectMenu(sender, url):
+    '''display a popup menu with the option to force a search for the selected episode/series'''
+    dir = MediaContainer(title='')
+    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this episode"), url=url))
     
     return dir
     
@@ -225,5 +233,10 @@ def GetSummary(showName):
         summary = "Not found."
     
     return summary
+
+####################################################################################################
+
+def EpisodeList(sender, showID):
+    return
 
 ####################################################################################################
