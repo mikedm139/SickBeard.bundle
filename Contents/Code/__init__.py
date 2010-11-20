@@ -144,16 +144,16 @@ def  ShowList(sender):
         #    pass
         updateUrl = '/home/updateShow?show=' + showID +'&force=1'
         dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, subtitle='Episodes: '+episodes,
-            summary=info, thumb=Function(GetThumb, showName=name)), url=updateUrl))
+            summary=info, thumb=Function(GetThumb, showName=name)), showID=showID, showName=name))
     return dir
     
 ####################################################################################################    
 
-def SeriesSelectMenu(sender, url):
+def SeriesSelectMenu(sender, showID, showName):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
-    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), url=url))
-    dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), url=url))
+    dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), showID=showID, showName=showName))
+    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), showID=showID))
     
     return dir
     
@@ -168,9 +168,9 @@ def EpisodeSelectMenu(sender, url):
     
 ####################################################################################################
 
-def ForceRefresh(sender, url):
+def ForceRefresh(sender, showID):
     '''tell SickBeard to do a force search for the given episode/series'''
-    updateUrl = SB_URL + url
+    updateUrl = SB_URL + '/home/updateShow?show=' + showID +'&force=1'
     #Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -226,7 +226,6 @@ def GetSummary(showName):
 
     tv_section_url = PLEX_URL + '/library/sections/' + TV_SECTION + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore', cacheTime=CACHE_1MONTH)
-    #summary = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('summary')
     try:
         summary = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('summary')
     except:
@@ -236,7 +235,36 @@ def GetSummary(showName):
 
 ####################################################################################################
 
-def EpisodeList(sender, showID):
-    return
+def EpisodeList(sender, showID, showName):
+    '''Display alist of all episodes of the given TV series including the SickBeard state of each'''
+    episodeListUrl = SB_URL + '/home/displayShow?show=' + showID
+    dir = MediaContainer(ViewGroup='InfoList', title2=showName)
+    #seriesThumb = GetThumb(showName)
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore')
+    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
+    for episode in episodeList.xpath('//tr'):
+        if episode.get('class') == "seasonheader":
+            pass
+        elif episode.get('class') == None:
+            pass
+        else:
+            epNum = episode.xpath('.//a')[0].get('name')
+            #Log('Found: ' + epNum)
+            epTitle = str(episode.xpath('./td')[4].text)[10:-10]
+            #Log('Title: ' + epTitle)
+            epDate = episode.xpath('./td')[5].text
+            #Log('AirDate: ' + epDate)
+            epStatus = episode.xpath('./td')[7].text
+            #Log('Status: ' + epStatus)
+            if epStatus != 'Skipped':
+                epSearchUrl = episode.xpath('.//a')[1].get('href')
+                #Log('Link: '+epSearchUrl)
+            dir.Append(Function(PopupDirectoryItem(EpisodeMenu, title=epNum+' '+epTitle, subtitle='Status: '+epStatus,
+                summary="Airdate: "+epDate, thumb=Function(GetThumb, showName=showName))))
+        
+    return dir
 
 ####################################################################################################
+
+def EpisodeMenu():
+    return
