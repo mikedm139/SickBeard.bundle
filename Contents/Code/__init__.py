@@ -183,7 +183,7 @@ def SeriesRefresh(sender, showID):
 def EpisodeRefresh(sender, url):
     '''tell SickBeard to do a force search for the given episode'''
     if url != None:
-        updateUrl = SB_URL + url
+        updateUrl = SB_URL + '/home/' + url
         #Log(updateUrl)
         try:
             updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -274,7 +274,10 @@ def EpisodeList(sender, showID, showName):
             epStatus = episode.xpath('./td')[7].text
             #Log('Status: ' + epStatus)
             if epDate != 'never':
-                epSearchUrl = episode.xpath('.//a')[1].get('href')
+                try:
+                    epSearchUrl = episode.xpath('.//a')[1].get('href')
+                except:
+                    epSearchUrl = None
                 #Log('Link: '+epSearchUrl)
             else:
                 epSearchUrl = None
