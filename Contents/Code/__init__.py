@@ -230,8 +230,9 @@ def GetTvSectionID():
     '''Determine what section(s) are TV series in Plex library'''
     
     library = HTML.ElementFromURL(PLEX_URL+'/library/sections')
-    sectionID = library.xpath('//directory[@title="'+Prefs['tvSection']+'"]')[0].get('key')
-    Log('TV section ID: ' + sectionID)
+    sectionID = library.xpath('//directory[@type="show"]')[0].get('key')
+    #sectionID = library.xpath('//directory[@title="'+Prefs['tvSection']+'"]')[0].get('key')
+    #Log('TV section ID: ' + sectionID)
     return sectionID
     
 ####################################################################################################
