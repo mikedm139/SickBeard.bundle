@@ -153,7 +153,7 @@ def SeriesSelectMenu(sender, showID, showName):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
     dir.Append(Function(PopupDirectoryItem(EpisodeList, title="View Episode List"), showID=showID, showName=showName))
-    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this series"), showID=showID))
+    dir.Append(Function(PopupDirectoryItem(SeriesRefresh, title="Force search for this series"), showID=showID))
     
     return dir
     
@@ -162,14 +162,14 @@ def SeriesSelectMenu(sender, showID, showName):
 def EpisodeSelectMenu(sender, url):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
-    dir.Append(Function(PopupDirectoryItem(ForceRefresh, title="Force search for this episode"), url=url))
+    dir.Append(Function(PopupDirectoryItem(EpisodeRefresh, title="Force search for this episode"), url=url))
     
     return dir
     
 ####################################################################################################
 
-def ForceRefresh(sender, showID):
-    '''tell SickBeard to do a force search for the given episode/series'''
+def SeriesRefresh(sender, showID):
+    '''tell SickBeard to do a force search for the given series'''
     updateUrl = SB_URL + '/home/updateShow?show=' + showID +'&force=1'
     #Log(updateUrl)
     try:
@@ -179,6 +179,21 @@ def ForceRefresh(sender, showID):
         return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
 
 #################################################################################################### 
+
+def EpisodeRefresh(sender, url):
+    '''tell SickBeard to do a force search for the given episode'''
+    if url != None:
+        updateUrl = SB_URL + url
+        #Log(updateUrl)
+        try:
+            updating = HTTP.Request(updateUrl, errors='ignore').content
+            return MessageContainer('SickBeard Plugin', L('Force search started'))
+        except:
+            return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
+    else:
+        return MessageContainer('SickBeard Plugin', L('Episode never aired. Cannot force search.'))
+
+####################################################################################################
 
 def AddShow(sender, name, ID):
     '''Tell SickBeard to add the given show to the watched/wanted list'''
@@ -254,17 +269,19 @@ def EpisodeList(sender, showID, showName):
             #Log('Title: ' + epTitle)
             epDate = episode.xpath('./td')[5].text
             #Log('AirDate: ' + epDate)
+            epFile = str(episode.xpath('./td')[6].text)[2:-7]
+            #Log(epFile)
             epStatus = episode.xpath('./td')[7].text
             #Log('Status: ' + epStatus)
-            if epStatus != 'Skipped':
+            if epDate != 'never':
                 epSearchUrl = episode.xpath('.//a')[1].get('href')
                 #Log('Link: '+epSearchUrl)
-            dir.Append(Function(PopupDirectoryItem(EpisodeMenu, title=epNum+' '+epTitle, subtitle='Status: '+epStatus,
-                summary="Airdate: "+epDate, thumb=Function(GetThumb, showName=showName))))
+            else:
+                epSearchUrl = None
+            dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
+                subtitle='Status: '+epStatus, summary="Airdate: "+epDate+"\nFileName: "+epFile,
+                thumb=Function(GetThumb, showName=showName)), url=epSearchUrl))
         
     return dir
 
 ####################################################################################################
-
-def EpisodeMenu():
-    return
