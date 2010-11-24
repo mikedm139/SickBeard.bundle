@@ -352,6 +352,11 @@ def RenameEpisodes(sender, showID):
 
 ####################################################################################################
 
+def PauseSeries(sender, showID): #not implemented yet
+    '''tell sickbeard to pause the given series'''
+    return
+####################################################################################################
+
 def DeleteShow(sender, showID):
     '''tell SickBeard to do delete the given series'''
     updateUrl = SB_URL + '/home/deleteShow?show=' + showID
