@@ -151,11 +151,11 @@ def ShowList(sender):
 def SeriesSelectMenu(sender, showID, showName):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
-    dir.Append(Function(PopupDirectoryItem(SeasonList, title="View Episode List"), showID=showID,
+    dir.Append(Function(DirectoryItem(SeasonList, title="View Episode List"), showID=showID,
         showName=showName))
-    dir.Append(Function(PopupDirectoryItem(EditSeries, title="Edit SickBeard options for this series"),
+    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard options for this series"),
         showID=showID, showName=showName))
-    #dir.Append(Function(PopupDirectoryItem(SeriesRefresh, title="Force search for this series"), showID=showID))
+    #dir.Append(Function(DirectoryItem(SeriesRefresh, title="Force search for this series"), showID=showID))
     
     return dir
     
