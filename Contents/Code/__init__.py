@@ -101,7 +101,6 @@ def ShowList(sender):
     url = SB_URL + '/home/'
     showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
     for show in showsPage.xpath('//tr[@class="evenLine"]'):
-        #try:
         next    = show.xpath('td')[0].text
         if next == None:
             next = "unknown"
@@ -145,8 +144,7 @@ def ShowList(sender):
                     'Status: ' + status + '\n' +
                     'Download quality: ' + quality + '\n' +
                     'Summary: ' + showSummary)
-        #except:
-        #    pass
+
         updateUrl = '/home/updateShow?show=' + showID +'&force=1'
         dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel=episodes,
             subtitle='Episodes: '+episodes, summary=info, thumb=Function(GetSeriesThumb, showName=name)),
@@ -162,7 +160,6 @@ def SeriesSelectMenu(sender, showID, showName):
         showName=showName))
     dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard options for this series"),
         showID=showID, showName=showName))
-    #dir.Append(Function(DirectoryItem(SeriesRefresh, title="Force search for this series"), showID=showID))
     
     return dir
     
@@ -236,6 +233,7 @@ def GetTvSectionID():
     
     library = HTML.ElementFromURL(PLEX_URL+'/library/sections')
     sectionID = library.xpath('//directory[@type="show"]')[0].get('key')
+    ### Old code to get library section ID for TV based on section name in plugin prefs ###
     #sectionID = library.xpath('//directory[@title="'+Prefs['tvSection']+'"]')[0].get('key')
     #Log('TV section ID: ' + sectionID)
     return sectionID
