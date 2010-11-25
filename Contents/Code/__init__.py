@@ -115,7 +115,7 @@ def ShowList(sender):
                 subtitle='Episodes: ???', summary='Unable to find showID for this series in SickBeard. Please' +
                 'check the web interface to confirm that this series was properly added. No functions will work for' + 
                 'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
-            Pass
+            pass
         #Log(link)
         showID = str(link)[-5:]
         #Log(showID)
