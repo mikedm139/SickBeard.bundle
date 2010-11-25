@@ -108,7 +108,14 @@ def ShowList(sender):
         #Log('Next airs: '+next)
         name    = show.xpath('td[2]//text()')[0]
         #Log(name)
-        link  = show.xpath('td[2]/a')[0].get('href')
+        try:
+            link  = show.xpath('td[2]/a')[0].get('href')
+        except:
+            dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel='???',
+                subtitle='Episodes: ???', summary='Unable to find showID for this series in SickBeard. Please' +
+                'check the web interface to confirm that this series was properly added. No functions will work for' + 
+                'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
+            Pass
         #Log(link)
         showID = str(link)[-5:]
         #Log(showID)
