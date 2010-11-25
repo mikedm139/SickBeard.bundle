@@ -58,7 +58,7 @@ def ComingEpisodes(sender):
     
     for episode in episodesPage.xpath('//div[@class="listing"]'):
         showName    = episode.xpath('a')[0].get('name')
-        DebuLogger('Found: '+ showName)
+        DebugLogger('Found: '+ showName)
         airsNext    = episode.xpath('div/p[1]/span')[1].text
         timeSlot    = episode.xpath('div/p[2]/span')[3].text
         updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
