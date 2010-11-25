@@ -260,13 +260,14 @@ def SeasonList(sender, showID, showName):
         dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, subtitle=showName,
             thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
             showID=showID, showName=showName, seasonInt=seasonNum))
-    
+    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', subtitle='showName',
+            thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all'))
     return dir
 
 ####################################################################################################
 
 def EpisodeList(sender, showID, showName, seasonInt):
-    '''Display alist of all episodes of the given TV series including the SickBeard state of each'''
+    '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
     episodeListUrl = SB_URL + '/home/displayShow?show=' + showID
     dir = MediaContainer(ViewGroup='InfoList', title2=showName)
 
@@ -277,7 +278,26 @@ def EpisodeList(sender, showID, showName, seasonInt):
             pass
         elif episode.get('class') == None:
             pass
+        elif seasonInt == 'all'
+            # display all episodes for the series
+            epNum = episode.xpath('.//a')[0].get('name')
+            #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
+            epTitle = str(episode.xpath('./td')[4].text)[10:-10]
+            #Log('Title: ' + epTitle)
+            epDate = episode.xpath('./td')[5].text
+            #Log('AirDate: ' + epDate)
+            epFile = str(episode.xpath('./td')[6].text)[2:-7]
+            #Log(epFile)
+            epStatus = episode.xpath('./td')[7].text
+            #Log('Status: ' + epStatus
+            dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
+                infoLabel=epStatus, subtitle='Status: '+epStatus,
+                summary="Airdate: "+epDate+"\nFileName: "+epFile,
+                thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
+                episodeNum=epNum))
+
         else:
+            # display all episode for the given season of the given series
             epNum = episode.xpath('.//a')[0].get('name')
             if str(epNum)[0:len(str(seasonInt))] == seasonInt:
                 epNum = str(epNum)[(len(str(seasonInt))+1):]
