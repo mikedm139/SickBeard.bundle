@@ -399,7 +399,7 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
     '''tell SickBeard to do a force search for the given episode'''
     if url != "":
         updateUrl = SB_URL + url
-        DebugLoger(updateUrl)
+        DebugLogger(updateUrl)
     elif showID != "":
         updateUrl = SB_URL + 'home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
     else:
@@ -419,10 +419,17 @@ def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
     url = SB_URL + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+episodeNum+'&status=3'
     
     try:
-        rsult = HTTP.Request(url, errors='ignore').content
+        result = HTTP.Request(url, errors='ignore').content
         return MessageContainer('SickBeard Plugin', L('Episode marked as wanted'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable mark as wanted'))
+
+####################################################################################################
+
+def GetEpisodes(showID, seasonInt): # not implemented yet
+    '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
+        for the given season of the given series'''
+    return
 
 ####################################################################################################
 
