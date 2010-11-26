@@ -399,7 +399,7 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
     '''tell SickBeard to do a force search for the given episode'''
     if url != "":
         updateUrl = SB_URL + url
-        DebugLoger(updateUrl)
+        DebugLogger(updateUrl)
     elif showID != "":
         updateUrl = SB_URL + 'home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
     else:
