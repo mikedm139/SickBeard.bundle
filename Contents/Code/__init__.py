@@ -25,7 +25,7 @@ def Start():
     DirectoryItem.thumb = R(ICON)
     HTTP.CacheTime=3600*3
     if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=SB_URL, username=Prefs['sbUser'], password=Prefs['sbPass'])
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
 
     global TV_SECTION
     TV_SECTION = GetTvSectionID()
@@ -52,7 +52,7 @@ def MainMenu():
 
 def ComingEpisodes(sender):
     dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes')
-    url = SB_URL + '/comingEpisodes'
+    url = Get_SB_URL() + '/comingEpisodes'
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
     
     for episode in episodesPage.xpath('//div[@class="listing"]'):
@@ -75,8 +75,8 @@ def SearchResults(sender,query):
     #tell SickBeard to create the folder in the TV directory
     newShowFolder = String.Quote(Prefs['tvDir']+'/'+query, usePlus=True)
     Log(newShowFolder)
-    addFolderUrl = SB_URL+'/home/addShows/addShows/?showDirs='+newShowFolder
-    url = SB_URL + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
+    addFolderUrl = Get_SB_URL()+'/home/addShows/addShows/?showDirs='+newShowFolder
+    url = Get_SB_URL() + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
     
     addFolderResult = HTTP.Request(addFolderUrl).content
     tvdbResult = JSON.ObjectFromURL(url).get("results")
@@ -98,7 +98,7 @@ def SearchResults(sender,query):
 def ShowList(sender):
     '''List all shows that SickBeard manages, and relevant info about each show'''
     dir = MediaContainer(ViewGroup="InfoList", title2="All Shows")
-    url = SB_URL + '/home/'
+    url = Get_SB_URL() + '/home/'
     showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
     for show in showsPage.xpath('//tr[@class="evenLine"]'):
         next    = show.xpath('td')[0].text
@@ -187,7 +187,7 @@ def AddShow(sender, name, ID):
         postValues = {'whichSeries' : str(ID), 'skipShow' : "0", 'showToAdd' : String.Quote(Prefs['tvDir']+name, usePlus=True)}
     else:
         postValues = {'whichSeries' : str(ID), 'skipShow' : "0", 'showToAdd' : String.Quote(Prefs['tvDir']+'/'+name, usePlus=True)}
-    url = SB_URL + '/home/addShows/addSingleShow'
+    url = Get_SB_URL() + '/home/addShows/addSingleShow'
     Log(postValues['showToAdd'])
     redirect = HTTP.Request(url, postValues).content
     
@@ -200,11 +200,11 @@ def AddShow(sender, name, ID):
 def GetSeriesThumb(showName):
     '''retrieve the thumbnail image from the Plex metadata database based on the title of the series'''
 
-    tv_section_url = PLEX_URL + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
     try:
         seriesThumb = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('thumb')
-        data = HTTP.Request(PLEX_URL + seriesThumb, cacheTime=CACHE_1MONTH).content
+        data = HTTP.Request(Get_PMS_URL() + seriesThumb, cacheTime=CACHE_1MONTH).content
         return DataObject(data, 'image/jpeg')
     except:
         return Redirect(R(ICON))
@@ -215,13 +215,13 @@ def GetSeasonThumb(showName, seasonInt):
     '''retrieve the season thumbnail image from the Plex metadata database based on the title of the series'''
     seasonString = "season " + seasonInt
     Log("Getting thumb for " + seasonString)
-    tv_section_url = PLEX_URL + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
     try:
-        seasonListUrl = PLEX_URL + tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('key')
+        seasonListUrl = Get_PMS_URL() + tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('key')
         seasonListPage = HTML.ElementFromURL(seasonListUrl, errors='ignore')
         seasonThumb = seasonListPage.xpath('//directory[@index='+seasonInt+']')[0].get('thumb')
-        data = HTTP.Request(PLEX_URL + seasonThumb, cacheTime=CACHE_1MONTH).content
+        data = HTTP.Request(Get_PMS_URL() + seasonThumb, cacheTime=CACHE_1MONTH).content
         return DataObject(data, 'image/jpeg')
     except:
         return GetSeriesThumb(showName)
@@ -231,7 +231,7 @@ def GetSeasonThumb(showName, seasonInt):
 def GetTvSectionID():
     '''Determine what section(s) are TV series in Plex library'''
     
-    library = HTML.ElementFromURL(PLEX_URL+'/library/sections')
+    library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections')
     sectionID = library.xpath('//directory[@type="show"]')[0].get('key')
     ### Old code to get library section ID for TV based on section name in plugin prefs ###
     #sectionID = library.xpath('//directory[@title="'+Prefs['tvSection']+'"]')[0].get('key')
@@ -243,7 +243,7 @@ def GetTvSectionID():
 def GetSummary(showName):
     '''retrieve the series summary from the Plex metadata database based on the title of the series'''
 
-    tv_section_url = PLEX_URL + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore', cacheTime=CACHE_1MONTH)
     try:
         summary = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('summary')
@@ -256,15 +256,19 @@ def GetSummary(showName):
 
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
-    seasonListUrl = SB_URL + '/home/displayShow?show=' + showID
+    seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
     dir = MediaContainer(ViewGroup='InfoList', title2=showName)
     listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore')
     seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
-    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', infoLabel=Function(GetEpisodes, showID, seasonInt='All'),
-        subtitle=showName, thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all')))
+    epCount = GetEpisodes(showID, 'all')
+    Log(epCount)
+    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', infoLabel=epCount, subtitle=showName,
+        thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all')))
     for season in seasonList.xpath('//input[@class="seasonCheck"]'):
         seasonNum = season.get('id')
-        dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, infoLabel=Function(GetEpisodes, showID, seasonInt=seasonNum),
+        epCount = GetEpisodes(showID, seasonNum)
+        Log(epCount)
+        dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, infoLabel=epCount,
             subtitle=showName, thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
             showID=showID, showName=showName, seasonInt=seasonNum))
     return dir
@@ -273,7 +277,7 @@ def SeasonList(sender, showID, showName):
 
 def EpisodeList(sender, showID, showName, seasonInt):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
-    episodeListUrl = SB_URL + '/home/displayShow?show=' + showID
+    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
     dir = MediaContainer(ViewGroup='InfoList', title2=showName)
 
     listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
@@ -343,7 +347,7 @@ def EditSeries(sender, showID, showName):
 
 def ForceFullUpdate(sender, showID):
     '''tell SickBeard to do a force search for the given series'''
-    updateUrl = SB_URL + '/home/updateShow?show=' + showID +'&force=1'
+    updateUrl = Get_SB_URL() + '/home/updateShow?show=' + showID +'&force=1'
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -355,7 +359,7 @@ def ForceFullUpdate(sender, showID):
 
 def RescanFiles(sender, showID):
     '''tell SickBeard to do re-scan files for the given series'''
-    updateUrl = SB_URL + '/home/refreshShow?show=' + showID
+    updateUrl = Get_SB_URL() + '/home/refreshShow?show=' + showID
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -367,7 +371,7 @@ def RescanFiles(sender, showID):
 
 def RenameEpisodes(sender, showID):
     '''tell SickBeard to do fix episode names for the given series'''
-    updateUrl = SB_URL + '/home/fixEpisodeNames?show=' + showID
+    updateUrl = Get_SB_URL() + '/home/fixEpisodeNames?show=' + showID
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -385,7 +389,7 @@ def PauseSeries(sender, showID): #not implemented yet
 
 def DeleteShow(sender, showID):
     '''tell SickBeard to do delete the given series'''
-    updateUrl = SB_URL + '/home/deleteShow?show=' + showID
+    updateUrl = Get_SB_URL() + '/home/deleteShow?show=' + showID
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
@@ -398,10 +402,10 @@ def DeleteShow(sender, showID):
 def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
     '''tell SickBeard to do a force search for the given episode'''
     if url != "":
-        updateUrl = SB_URL + url
+        updateUrl = Get_SB_URL() + url
         Log(updateUrl)
     elif showID != "":
-        updateUrl = SB_URL + 'home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
+        updateUrl = Get_SB_URL() + 'home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
     else:
         return MessageContainer('SickBeard Plugin', L('Episode never aired. Cannot force search.'))
     
@@ -416,7 +420,7 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
 def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
     '''tell SickBeard to do mark the given episode as "wanted"'''
     
-    url = SB_URL + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+episodeNum+'&status=3'
+    url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+episodeNum+'&status=3'
     
     try:
         result = HTTP.Request(url, errors='ignore').content
@@ -430,7 +434,7 @@ def GetEpisodes(showID, seasonInt):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
         for the given season of the given series'''
     
-    episodeListUrl = SB_URL + '/home/displayShow?show=' + showID
+    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
     listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     allEpisodes = 0
@@ -445,11 +449,15 @@ def GetEpisodes(showID, seasonInt):
             epNum = episode.xpath('.//a')[0].get('name')
             epStatus = episode.xpath('./td')[7].text
             Log(epStatus)
-            if epStatus != 'Skipped' and 'Unaired' and 'Wanted':
+            if epStatus == 'Skipped':
                 allEpisodes += 1
-                haveEpisodes += 1
+            elif epStatus == 'Unaired':
+                allEpisodes += 1
+            elif epStatus == 'Wanted':
+                allEpisodes += 1
             else:
                 allEpisodes += 1
+                haveEpisodes += 1
         else:
             # count all episode for the given season of the given series
             epNum = episode.xpath('.//a')[0].get('name')
@@ -457,15 +465,18 @@ def GetEpisodes(showID, seasonInt):
                 epNum = str(epNum)[(len(str(seasonInt))+1):]
                 epStatus = episode.xpath('./td')[7].text
                 Log('Status: ' + epStatus)
-                if epStatus != 'Skipped' and 'Unaired' and 'Wanted':
+                if epStatus == 'Skipped':
                     allEpisodes += 1
-                    haveEpisodes += 1
+                elif epStatus == 'Unaired':
+                    allEpisodes += 1
+                elif epStatus == 'Wanted':
+                    allEpisodes += 1
                 else:
                     allEpisodes += 1
-        
+                    haveEpisodes += 1
+         
         
     epCount = str(haveEpisodes)+'/'+str(allEpisodes)
-    Log(epCount)
     return epCount
 
 ####################################################################################################
