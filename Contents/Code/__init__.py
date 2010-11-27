@@ -1,5 +1,4 @@
 ####################################################################################################
-DEBUG      = False
 
 VIDEO_PREFIX = "/video/sickbeard"
 
@@ -9,8 +8,8 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
-SB_URL      = 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
-PLEX_URL    = 'http://'+Prefs['plexIP']+':32400'
+#SB_URL      = 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
+#PLEX_URL    = 'http://'+Prefs['plexIP']+':32400'
 TV_SECTION  = ""
 
 ####################################################################################################
@@ -32,27 +31,6 @@ def Start():
     TV_SECTION = GetTvSectionID()
     if TV_SECTION == "":
         return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
-
-####################################################################################################
-
-def ValidatePrefs():
-    '''restart the plugin after changes to the preferences to make sure that the changes take effect'''
-    Log('restarting plugin')
-    
-    tokens = Core.storage.join_path(Core.storage.data_path, "updates").split("/")
-    dir = "/"
-    for token in tokens:
-      if len(token) < 1: continue
-      if token == "Plug-in Support":
-        break
-      else:
-        dir += token + "/"
-    
-    dir += "Plug-ins/SickBeard.bundle/Contents"
-    plist = Core.storage.join_path(dir, 'Info.plist')
-    plistData = Core.storage.load(plist)
-    Core.storage.save(plist, plistData)
-    return
 
 ####################################################################################################
 
@@ -282,13 +260,13 @@ def SeasonList(sender, showID, showName):
     dir = MediaContainer(ViewGroup='InfoList', title2=showName)
     listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore')
     seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
+    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', infoLabel=Function(GetEpisodes, showID, seasonInt='All'),
+        subtitle=showName, thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all')))
     for season in seasonList.xpath('//input[@class="seasonCheck"]'):
         seasonNum = season.get('id')
-        dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, subtitle=showName,
-            thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
+        dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, infoLabel=Function(GetEpisodes, showID, seasonInt=seasonNum),
+            subtitle=showName, thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
             showID=showID, showName=showName, seasonInt=seasonNum))
-    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', subtitle='showName',
-            thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all')))
     return dir
 
 ####################################################################################################
@@ -402,6 +380,7 @@ def RenameEpisodes(sender, showID):
 def PauseSeries(sender, showID): #not implemented yet
     '''tell sickbeard to pause the given series'''
     return
+
 ####################################################################################################
 
 def DeleteShow(sender, showID):
@@ -447,9 +426,56 @@ def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
 
 ####################################################################################################
 
-def GetEpisodes(showID, seasonInt): # not implemented yet
+def GetEpisodes(showID, seasonInt):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
         for the given season of the given series'''
-    return
+    
+    episodeListUrl = SB_URL + '/home/displayShow?show=' + showID
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
+    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
+    allEpisodes = 0
+    haveEpisodes = 0
+    for episode in episodeList.xpath('//tr'):
+        if episode.get('class') == "seasonheader":
+            pass
+        elif episode.get('class') == None:
+            pass
+        elif seasonInt == 'all':
+            # count all episodes for the given series
+            epNum = episode.xpath('.//a')[0].get('name')
+            epStatus = episode.xpath('./td')[7].text
+            Log(epStatus)
+            if epStatus != 'Skipped' and 'Unaired' and 'Wanted':
+                allEpisodes += 1
+                haveEpisodes += 1
+            else:
+                allEpisodes += 1
+        else:
+            # count all episode for the given season of the given series
+            epNum = episode.xpath('.//a')[0].get('name')
+            if str(epNum)[0:len(str(seasonInt))] == seasonInt:
+                epNum = str(epNum)[(len(str(seasonInt))+1):]
+                epStatus = episode.xpath('./td')[7].text
+                Log('Status: ' + epStatus)
+                if epStatus != 'Skipped' and 'Unaired' and 'Wanted':
+                    allEpisodes += 1
+                    haveEpisodes += 1
+                else:
+                    allEpisodes += 1
+        
+        
+    epCount = str(haveEpisodes)+'/'+str(allEpisodes)
+    Log(epCount)
+    return epCount
 
+####################################################################################################
+
+def Get_SB_URL():
+    return 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
+    
+####################################################################################################
+
+def Get_PMS_URL():
+    return 'http://'+Prefs['plexIP']+':32400'
+    
 ####################################################################################################
