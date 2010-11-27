@@ -154,9 +154,9 @@ def ShowList(sender):
 ####################################################################################################    
 
 def SeriesSelectMenu(sender, showID, showName):
-    '''display a popup menu with the option to force a search for the selected episode/series'''
+    '''display a popup menu with the option to force a search for the selected series'''
     dir = MediaContainer(title='')
-    dir.Append(Function(DirectoryItem(SeasonList, title="View Episode List"), showID=showID,
+    dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
         showName=showName))
     dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard options for this series"),
         showID=showID, showName=showName))
@@ -268,11 +268,23 @@ def SeasonList(sender, showID, showName):
         seasonNum = season.get('id')
         epCount = GetEpisodes(showID, seasonNum)
         Log(epCount)
-        dir.Append(Function(DirectoryItem(EpisodeList, title='Season '+seasonNum, infoLabel=epCount,
+        dir.Append(Function(PopupDirectoryItem(SeasonSelectMenu, title='Season '+seasonNum, infoLabel=epCount,
             subtitle=showName, thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
-            showID=showID, showName=showName, seasonInt=seasonNum))
+            showID=showID, showName=showName, seasonNum=seasonNum))
     return dir
 
+####################################################################################################
+
+def SeasonSelectMenu(sender, showID, showName, seasonNum):
+    '''display a popup menu with options for the selected season'''
+    dir = MediaContainer(title='')
+    dir.Append(Function(DirectoryItem(EpisodeList, title="View Episode List"), showID=showID,
+        showName=showName, seasonInt=seasonNum))
+    dir.Append(Function(DirectoryItem(MarkSeasonWanted, title="Mark all episodes as 'Wanted'"),
+        showID=showID, seasonInt=seasonNum))
+    
+    return dir
+    
 ####################################################################################################
 
 def EpisodeList(sender, showID, showName, seasonInt):
@@ -427,6 +439,43 @@ def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
         return MessageContainer('SickBeard Plugin', L('Episode marked as wanted'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable mark as wanted'))
+
+####################################################################################################
+
+def MarkSeasonWanted(sender, showID, seasonInt):
+    '''iterate through the given season and tell SickBeard to mark each episode as wanted'''
+    
+    #url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3'
+    
+    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
+    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
+    episodesMarked = 0
+    for episode in episodeList.xpath('//tr'):
+        if episode.get('class') == "seasonheader":
+            pass
+        elif episode.get('class') == None:
+            pass
+        elif seasonInt == 'all':
+            epNum = episode.xpath('.//a')[0].get('name')
+            try:
+                result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3', errors='ignore').content
+                Log('Episode: '+epNum+' marked as "Wanted"')
+                episodesMarked += 1
+            except:
+                Log('Failed: Unable to mark episode '+epNum+' as "Wanted"')
+        else:
+            # count all episode for the given season of the given series
+            epNum = episode.xpath('.//a')[0].get('name')
+            if str(epNum)[0:len(str(seasonInt))] == seasonInt:
+                try:
+                    result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3', errors='ignore').content
+                    Log('Episode: '+epNum+' marked as "Wanted"')
+                    episodesMarked += 1
+                except:
+                    Log('Failed: Unable to mark episode '+epNum+' as "Wanted"')
+    
+    return MessageContainer('SickBeard Plugin', L(str(episodesMarked)+' marked as "Wanted"'))
 
 ####################################################################################################
 
