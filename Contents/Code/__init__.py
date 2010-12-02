@@ -1,3 +1,5 @@
+import re
+
 ####################################################################################################
 
 VIDEO_PREFIX = "/video/sickbeard"
@@ -8,8 +10,6 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
-#SB_URL      = 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
-#PLEX_URL    = 'http://'+Prefs['plexIP']+':32400'
 TV_SECTION  = ""
 
 ####################################################################################################
@@ -24,13 +24,22 @@ def Start():
     MediaContainer.title1 = NAME
     DirectoryItem.thumb = R(ICON)
     HTTP.CacheTime=3600*3
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+
+### global variables for dealing with custom qualities###
+    global anyQualitiesSum
+    global bestQualitiesSum
 
     global TV_SECTION
     TV_SECTION = GetTvSectionID()
     if TV_SECTION == "":
         return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
+
+####################################################################################################
+
+def ValidatePrefs():
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+    return
 
 ####################################################################################################
 
@@ -116,7 +125,7 @@ def ShowList(sender):
                 'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
             pass
         Log(link)
-        showID = str(link)[-5:]
+        showID = re.findall('=(\d+)$', link)[0]
         Log(showID)
         network = show.xpath('td')[2].text
         if network == None:
@@ -158,7 +167,7 @@ def SeriesSelectMenu(sender, showID, showName):
     dir = MediaContainer(title='')
     dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
         showName=showName))
-    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard options for this series"),
+    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
         showID=showID, showName=showName))
     
     return dir
@@ -224,7 +233,7 @@ def GetSeasonThumb(showName, seasonInt):
         data = HTTP.Request(Get_PMS_URL() + seasonThumb, cacheTime=CACHE_1MONTH).content
         return DataObject(data, 'image/jpeg')
     except:
-        return GetSeriesThumb(showName)
+        GetSeriesThumb(showName)
 
 ####################################################################################################
 
@@ -262,8 +271,8 @@ def SeasonList(sender, showID, showName):
     seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     epCount = GetEpisodes(showID, 'all')
     Log(epCount)
-    dir.Append(Function(DirectoryItem(EpisodeList, title='All Seasons', infoLabel=epCount, subtitle=showName,
-        thumb=Function(GetSeriesThumb, showName), showID=showID, showName=showName, seasonInt='all')))
+    dir.Append(Function(PopupDirectoryItem(SeasonSelectMenu, title='All Seasons', infoLabel=epCount, subtitle=showName,
+        thumb=Function(GetSeriesThumb, showName=showName), showID=showID, showName=showName, seasonInt='all')))
     for season in seasonList.xpath('//input[@class="seasonCheck"]'):
         seasonNum = season.get('id')
         epCount = GetEpisodes(showID, seasonNum)
@@ -343,7 +352,10 @@ def EpisodeList(sender, showID, showName, seasonInt):
 
 def EditSeries(sender, showID, showName):
     '''display a menu of options for editing SickBeard functions for the given series'''
-    dir = MediaContainer(ViewGroup='InfoList', title2='Edit '+showName)
+    
+    #cleanSlate = ResetGlobalQualityLists()
+    
+    dir = MediaContainer(ViewGroup='InfoList', title2='Edit '+showName, noCache=True)
     
     dir.Append(Function(PopupDirectoryItem(RescanFiles, 'Re-Scan Files', subtitle='Series: '+ showName,
         thumb=R(ICON)), showID))
@@ -354,7 +366,38 @@ def EditSeries(sender, showID, showName):
     dir.Append(Function(PopupDirectoryItem(DeleteShow, 'Delete Series', subtitle='Series: '+ showName,
         thumb=R(ICON)), showID))
     
+    seriesPrefs = GetSeriesPrefs(showID)
+    
+    dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, title='Quality Setting', subtitle=seriesPrefs['qualityPreset'],
+        infoLabel=seriesPrefs['qualityPreset'], summary='Change the quality setting for this series.', thumb=R(ICON)),
+        showID=showID, showName=showName))
+    
+    if seriesPrefs['paused']:
+        dir.Append(Function(DirectoryItem(UnpauseSeries, 'Unpause series', subtitle='Series: ' + showName,
+        thumb=R(ICON)), showID=showID, showName=showName))
+    else:
+        dir.Append(Function(DirectoryItem(PauseSeries, 'Pause series', subtitle='Series: ' + showName,
+        thumb=R(ICON)), showID=showID, showName=showName))
+    if seriesPrefs['airByDate']:
+        dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date', infoLabel='On',
+            subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+    else:
+        dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date', infoLabel='Off',
+            subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+    
     return dir
+
+####################################################################################################
+
+def ResetGlobalQualityLists():
+    '''reset the global quality lists so that they don't carry over between editing different series'''
+    try:
+        global anyQualities, bestQualities
+        anyQualities, bestQualities = []
+        return True
+    except:
+        return False
+
 ####################################################################################################
 
 def ForceFullUpdate(sender, showID):
@@ -393,9 +436,167 @@ def RenameEpisodes(sender, showID):
 
 ####################################################################################################
 
-def PauseSeries(sender, showID): #not implemented yet
+def PauseSeries(sender, showID, showName):
     '''tell sickbeard to pause the given series'''
+    seriesPrefs = GetSeriesPrefs(showID)
+    #submit existing values as they are
+    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
+    for i in range(len(seriesPrefs['anyQualities'])):
+        postValues = postValues + '&anyQualities=' + seriesPrefs['anyQualities'][i]
+    for j in range(len(seriesPrefs['bestQualities'])):
+        postValues = postValues + '&bestQualities=' + seriesPrefs['bestQualities'][j]
+    if seriesPrefs['seasonFolders']:
+        postValues = postValues + '&seasonfolders=on'
+    #submit the value for 'pause'
+    postValues = postValues + '&paused=on'
+    #submit air_by_date as is
+    if seriesPrefs['airByDate'] :
+        postValues = postValues + '&air_by_date=on'
+        
+    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    try:
+        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    except:
+        return MessageContainer('SickBeard', L('Series Pause command failed'))
+    
     return
+
+####################################################################################################
+
+def UnpauseSeries(sender, showID, showName):
+    '''tell sickbeard to unpause the given series'''
+    seriesPrefs = GetSeriesPrefs(showID)
+    #submit existing values as they are
+    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
+    for i in range(len(seriesPrefs['anyQualities'])):
+        postValues = postValues + '&anyQualities=' + seriesPrefs['anyQualities'][i]
+    for j in range(len(seriesPrefs['bestQualities'])):
+        postValues = postValues + '&bestQualities=' + seriesPrefs['bestQualities'][j]
+    if seriesPrefs['seasonFolders']:
+        postValues = postValues + '&seasonfolders=on'
+    ###omit the value for 'pause'###
+    #submit air_by_date as is
+    if seriesPrefs['airByDate'] :
+        postValues = postValues + '&air_by_date=on'
+    
+    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    try:
+        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    except:
+        return MessageContainer('SickBeard', L('Series Unpause command failed'))
+    
+    return
+    
+####################################################################################################
+
+def AirByDate_On(sender, showID, showName):
+    '''tell sickbeard to use air_by_date for the given series'''
+    seriesPrefs = GetSeriesPrefs(showID)
+    #submit existing values as they are
+    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
+    for i in range(len(seriesPrefs['anyQualities'])):
+        postValues = postValues + '&anyQualities=' + seriesPrefs['anyQualities'][i]
+    for j in range(len(seriesPrefs['bestQualities'])):
+        postValues = postValues + '&bestQualities=' + seriesPrefs['bestQualities'][j]
+    if seriesPrefs['seasonFolders']:
+        postValues = postValues + '&seasonfolders=on'
+    if seriesPrefs['paused']:
+        postValues = postValues + '&paused=on'
+    #submit air_by_date vale
+    postValues = postValues + '&air_by_date=on'
+        
+    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    try:
+        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    except:
+        return MessageContainer('SickBeard', L('"Air by date" command failed'))
+    
+    return
+
+####################################################################################################
+
+def AirByDate_Off(sender, showID, showName):
+    '''tell sickbeard not to use air_by_date for the given series'''
+    seriesPrefs = GetSeriesPrefs(showID)
+    #submit existing values as they are
+    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
+    for i in range(len(seriesPrefs['anyQualities'])):
+        postValues = postValues + '&anyQualities=' + seriesPrefs['anyQualities'][i]
+    for j in range(len(seriesPrefs['bestQualities'])):
+        postValues = postValues + '&bestQualities=' + seriesPrefs['bestQualities'][j]
+    if seriesPrefs['seasonFolders']:
+        postValues = postValues + '&seasonfolders=on'
+    if seriesPrefs['paused']:
+        postValues = postValues + '&paused=on'
+    ### omit value for air_by_date
+    
+    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    try:
+        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    except:
+        return MessageContainer('SickBeard', L('Could not turn "Air by date" off.'))
+    
+    return
+
+####################################################################################################
+
+def GetSeriesPrefs(showID):
+    '''get the existing selections from the series edit page'''
+    url = Get_SB_URL() + '/home/editShow?show=' + showID
+    page = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    seriesPrefs = (page).replace('SELECTED', 'selected=True')
+    seriesPrefs = (seriesPrefs).replace('CHECKED', 'checked=True')
+    seriesPrefs = re.sub('(<option.*>)\n', '\1</option>', seriesPrefs)
+    seriesPrefsPage = HTML.ElementFromString(seriesPrefs)
+    location = seriesPrefsPage.xpath('//input[@name="location"]')[0].get('value')
+    try:
+        useSeasonFolders = seriesPrefsPage.xpath('//input[@name="seasonfolders"]')[0].get('checked')
+        if useSeasonFolders == None:
+            useSeasonFolders = False
+    except:
+        useSeasonFolders = False
+    try:
+        paused = seriesPrefsPage.xpath('//input[@name="paused"]')[0].get('checked')
+        if paused == None:
+            paused = False
+    except:
+        paused = False
+    try:
+        airByDate = seriesPrefsPage.xpath('//input[@name="air_by_date"]')[0].get('checked')
+        if airByDate == None:
+            airByDate = False
+    except:
+        airByDate = False
+    qualityPreset = ''
+    anyQualities = []
+    bestQualities = []
+    for option in seriesPrefsPage.xpath('//select[@id="qualityPreset"]/option'):
+        if option.get('selected'):
+            qualityPreset = option.get('value')
+    for option in seriesPrefsPage.xpath('//select[@id="anyQualities"]/option'):
+        if option.get('selected'):
+            anyQualities.append(option.get('value'))
+    for option in seriesPrefsPage.xpath('//select[@id="bestQualities"]/option'):
+        if option.get('selected'):
+            bestQualities.append(option.get('value'))
+    
+    ### convert qualityPreset value into a descriptive title ###
+    if qualityPreset == '3':
+        qualityPreset = 'SD'
+    elif qualityPreset == '28':
+        qualityPreset = 'HD'
+    elif qualityPreset == '31':
+        qualityPreset = 'Any'
+    elif qualityPreset == '':
+        if anyQualities == ['1','4']:
+            if bestQualities == ['4']:
+                qualityPreset = 'Best'
+        else:
+            qualityPreset = 'Custom'
+    
+    return {'location' : location, 'anyQualities' : anyQualities, 'qualityPreset' : qualityPreset,
+            'bestQualities' : bestQualities, 'seasonFolders' : useSeasonFolders, 'paused' : paused,
+            'airByDate' : airByDate}
 
 ####################################################################################################
 
@@ -405,9 +606,174 @@ def DeleteShow(sender, showID):
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
-        return MessageContainer('SickBeard Plugin', L('Series deleted from SickBeard database'))
+        return ShowList()
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable to delete series'))
+
+####################################################################################################
+
+def SeriesQualityMenu(sender, showID, showName):
+    '''allow option to change quality setting for individual series'''
+    dir = MediaContainer()
+    
+    dir.Append(Function(DirectoryItem(CustomQualitiesMenu, title='Custom', subtitle='Choose your own qualities',
+        thumb=R(ICON)), showID=showID, showName=showName))
+    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='SD', subtitle='SD TV/SD DVD',
+        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='SD'))
+    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='HD', subtitle='HD TV/720p WEB-DL/720p BluRay',
+        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='HD'))
+    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='Any', subtitle='SD TV/SD DVD/HD TV/720p WEB-DL/720p BluRay',
+        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='Any'))
+    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='Best', subtitle='SD TV/HD TV replace with HD TV',
+        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='Best'))
+    
+    return dir
+    
+####################################################################################################    
+
+def ChangeSeriesQuality(sender, showID, showName, qualityPreset, anyQualities=[], bestQualities=[]):
+    '''submit a change in quality for the given series'''
+       
+    seriesPrefs = GetSeriesPrefs(showID)
+    
+    if qualityPreset == 'SD':
+        seriesPrefs['anyQualities'] = ['1', '2']
+        seriesPrefs['bestQualites'] = []
+    elif qualityPreset == 'HD':
+        seriesPrefs['anyQualities'] = ['4', '8', '16']
+        seriesPrefs['bestQualites'] = []
+    elif qualityPreset == 'Any':
+        seriesPrefs['anyQualities'] = ['1', '2', '4', '8', '16']
+        seriesPrefs['bestQualites'] = []
+    elif qualityPreset == 'Custom':
+        seriesPrefs['anyQualities'] = anyQualities
+        seriesPrefs['bestQualities'] = bestQualities
+        
+    Log(seriesPrefs['anyQualities'])
+    Log(seriesPrefs['bestQualities'])
+    #submit new values for quality
+    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
+    for i in range(len(seriesPrefs['anyQualities'])):
+        postValues = postValues + '&anyQualities=' + seriesPrefs['anyQualities'][i]
+    for j in range(len(seriesPrefs['bestQualities'])):
+        postValues = postValues + '&bestQualities=' + seriesPrefs['bestQualities'][j]
+    
+    #submit existing values as they are
+    if seriesPrefs['seasonFolders']:
+        postValues = postValues + '&seasonfolders=on'
+    if seriesPrefs['paused']:
+        postValues = postValues + '&paused=on'
+    if seriesPrefs['airByDate'] :
+        postValues = postValues + '&air_by_date=on'
+        
+    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    
+    try:
+        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    except:
+        return MessageContainer('SickBeard', L('Failed to change quality settings.'))
+    
+    return
+
+####################################################################################################
+
+def CustomQualitiesMenu(sender, showID, showName):
+    '''allow selection of user defined quality settings'''
+    
+    dir = MediaContainer(ViewGroup='InfoList', title2='Custom Quality for: '+showName)
+    
+    dir.Append(Function(DirectoryItem(InitialQualityMenu, title='Initial Download Quality',
+        summary="If I don't have the episode then tell SickBeard to download it in ONE of the selected qualities",
+        thumb=R(ICON)), showID=showID, showName=showName))
+    dir.Append(Function(DirectoryItem(ReplacementQualityMenu, title='Replacement Download Quality',
+        summary='Tell SickBeard to re-download the episodes in any or all of these qualities as they are available',
+        thumb=R(ICON)), showID=showID, showName=showName))
+    
+    return dir
+
+####################################################################################################
+
+def InitialQualityMenu(sender, showID, showName):
+    '''Tell SickBeard which quality/qualities to download as soon as they are available'''
+    
+    dir = MediaContainer(ViewGroup='InfoList', title2='Intial Quality: ' + showName, noCache=True)
+    
+    seriesPrefs = GetSeriesPrefs(showID)
+    
+    anyQualities = seriesPrefs['anyQualities']
+    
+    if '1' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='SD TV', infoLabel='Selected', thumb=R(ICON)),
+            value='1', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='SD TV', thumb=R(ICON)), value='1', list=anyQualities))
+    if '2' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='SD DVD', infoLabel='Selected', thumb=R(ICON)),
+            value='2', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='SD DVD', thumb=R(ICON)), value='2', list='initial'))
+    if '4' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='HD TV', infoLabel='Selected', thumb=R(ICON)),
+            value='4', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='HD TV', thumb=R(ICON)), value='4', list='initial'))
+    if '8' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='720p WEB-DL', infoLabel='Selected', thumb=R(ICON)),
+            value='8', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='720p WEB-DL', thumb=R(ICON)), value='8', list='initial'))
+    if '16' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='720p BluRay', infoLabel='Selected', thumb=R(ICON)),
+            value='16', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='720p BluRay', thumb=R(ICON)), value='16', list='initial'))
+    if '32' in anyQualities:
+        dir.Append(Function(PopupDirectoryItem(RemoveFromList, title='1080p BluRay', infoLabel='Selected', thumb=R(ICON)),
+            value='32', list='initial'))
+    else:
+        dir.Append(Function(PopupDirectoryItem(AddToList, title='1080p BluRay', thumb=R(ICON)), value='32', list='initial'))
+    
+    return dir
+
+####################################################################################################
+
+def ReplacementQualityMenu(sender, showID, showName):
+    '''Tell SickBeard to which quality/qualities to download as replacements for lower intial
+        quality downloads as they are available'''
+        
+    dir = MediaContainer(ViewGroup='InfoList', title2='Replacement Quality: '+showName, noCache=True)
+    
+    seriesPrefs = GetSeriesPrefs(showID)
+    
+    bestQualities = seriesPrefs['bestQualities']
+    
+    if '2' in bestQualities:
+        dir.Append(Function(DirectoryItem(RemoveFromList, title='SD DVD', infoLabel='Selected', thumb=R(ICON)),
+            value='2', list='replacement'))
+    else:
+        dir.Append(Function(DirectoryItem(AddToList, title='SD DVD', thumb=R(ICON)), value='2', list='replacement'))
+    if '4' in bestQualities:
+        dir.Append(Function(DirectoryItem(RemoveFromList, title='HD TV', infoLabel='Selected', thumb=R(ICON)),
+            value='4', list='replacement'))
+    else:
+        dir.Append(Function(DirectoryItem(AddToList, title='HD TV', thumb=R(ICON)), value='4', list='replacement'))
+    if '8' in bestQualities:
+        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p WEB-DL', infoLabel='Selected', thumb=R(ICON)),
+            value='8', list='replacement'))
+    else:
+        dir.Append(Function(DirectoryItem(AddToList, title='720p WEB-DL', thumb=R(ICON)), value='8', list='replacement'))
+    if '16' in bestQualities:
+        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p BluRay', infoLabel='Selected', thumb=R(ICON)),
+            value='16', list='replacement'))
+    else:
+        dir.Append(Function(DirectoryItem(AddToList, title='720p BluRay', thumb=R(ICON)), value='16', list='replacement'))
+    if '32' in bestQualities:
+        dir.Append(Function(DirectoryItem(RemoveFromList, title='1080p BluRay', infoLabel='Selected', thumb=R(ICON)),
+            value='32', list='replacement'))
+    else:
+        dir.Append(Function(DirectoryItem(AddToList, title='1080p BluRay', thumb=R(ICON)), value='32', list='replacement'))
+    
+    return dir
 
 ####################################################################################################
 
