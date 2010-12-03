@@ -25,10 +25,6 @@ def Start():
     DirectoryItem.thumb = R(ICON)
     HTTP.CacheTime=3600*3
 
-### global variables for dealing with custom qualities###
-    global anyQualities
-    global bestQualities
-
     global TV_SECTION
     TV_SECTION = GetTvSectionID()
     if TV_SECTION == "":
@@ -353,12 +349,12 @@ def EpisodeList(sender, showID, showName, seasonInt):
 def EditSeries(sender, showID, showName):
     '''display a menu of options for editing SickBeard functions for the given series'''
     
-    #cleanSlate = ResetGlobalQualityLists()
+    cleanSlate = ResetGlobalQualityLists()
     
     dir = MediaContainer(ViewGroup='InfoList', title2='Edit '+showName, noCache=True)
     
     dir.Append(Function(PopupDirectoryItem(RescanFiles, 'Re-Scan Files', subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID))
+        thumb=R(ICON)), showID=showID))
     dir.Append(Function(PopupDirectoryItem(RenameEpisodes, 'Rename Episodes', subtitle='Series: '+ showName,
         thumb=R(ICON)), showID))
     dir.Append(Function(PopupDirectoryItem(ForceFullUpdate, 'Force Full Update', subtitle='Series: '+ showName,
@@ -368,9 +364,8 @@ def EditSeries(sender, showID, showName):
     
     seriesPrefs = GetSeriesPrefs(showID)
     
-    dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, title='Quality Setting', subtitle=seriesPrefs['qualityPreset'],
-        infoLabel=seriesPrefs['qualityPreset'], summary='Change the quality setting for this series.', thumb=R(ICON)),
-        showID=showID, showName=showName))
+    dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting', infoLabel=seriesPrefs['qualityPreset'], subtitle='Series: '+ showName,
+        thumb=R(ICON)), showID=showID, showName=showName))
     
     if seriesPrefs['paused']:
         dir.Append(Function(DirectoryItem(UnpauseSeries, 'Unpause series', subtitle='Series: ' + showName,
@@ -817,12 +812,13 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
         updateUrl = Get_SB_URL() + url
         Log(updateUrl)
     elif showID != "":
-        updateUrl = Get_SB_URL() + 'home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
+        updateUrl = Get_SB_URL() + '/home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
     else:
         return MessageContainer('SickBeard Plugin', L('Episode never aired. Cannot force search.'))
     
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
+        Log(updating)
         return MessageContainer('SickBeard Plugin', L('Force search started'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
@@ -977,6 +973,5 @@ def AddToList(sender, value, list):
         pass
     
     return True
-    
-    
+        
 ####################################################################################################
