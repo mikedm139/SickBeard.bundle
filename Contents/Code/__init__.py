@@ -454,7 +454,7 @@ def PauseSeries(sender, showID, showName):
     except:
         return MessageContainer('SickBeard', L('Series Pause command failed'))
     
-    return
+    return MessageContainer('SickBeard', L(showName+' Paused.'))
 
 ####################################################################################################
 
@@ -480,7 +480,7 @@ def UnpauseSeries(sender, showID, showName):
     except:
         return MessageContainer('SickBeard', L('Series Unpause command failed'))
     
-    return
+    return MessageContainer('SickBeard', L(showName+' Unpaused.'))
     
 ####################################################################################################
 
