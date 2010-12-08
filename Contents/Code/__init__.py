@@ -1,4 +1,5 @@
 import re
+import os
 
 ####################################################################################################
 
@@ -33,8 +34,12 @@ def Start():
 ####################################################################################################
 
 def ValidatePrefs():
+
     if Prefs['sbUser'] and Prefs['sbPass']:
         HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+
+    Restart()
+
     return
 
 ####################################################################################################
@@ -977,4 +982,16 @@ def AddToList(sender, value, list):
     
     return True
         
+####################################################################################################
+
+def Restart():
+    '''trick the plugin into restarting by "modifying" a file in the bundle'''
+    
+    file = '~/Library/Application Support/Plex Media Server/Plugins/SickBeard.bundle/Contents/restart.py'
+    
+    temp = os.write(file, os.read(os.open(file)))
+
+    return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
+
+
 ####################################################################################################
