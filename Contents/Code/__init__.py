@@ -1,10 +1,11 @@
 import re
+import os
 
 ####################################################################################################
 
 VIDEO_PREFIX = "/video/sickbeard"
 
-NAME = L('SickBeard')
+NAME = 'SickBeard'
 
 ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
@@ -30,29 +31,24 @@ def Start():
     if TV_SECTION == "":
         return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
 
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+    
 ####################################################################################################
 
 def ValidatePrefs():
-    Log('User: '+ Prefs['sbUser'] +'\nPass: '+Prefs['sbPass'])
-    
+
     if Prefs['sbUser'] and Prefs['sbPass']:
         HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
-        Log('HTTP authorization set')
-    try:
-        testResponse = HTML.ElementFromURL(Get_SB_URL() +'/home/', errors='ignore', cacheTime=0)
-    except:
-        return MessageContainer(NAME, L('Unable to access SickBeard. Please confirm that the IP address, Port,' +
-            ' Username and Password for your SickBeard install are properly set in the plug-in preferences.'))
+
+    Restart()
+
     return
 
 ####################################################################################################
 
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
-
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
-        Log('HTTP authorization set')
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -312,7 +308,7 @@ def SeasonSelectMenu(sender, showID, showName, seasonNum):
 def EpisodeList(sender, showID, showName, seasonInt):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    dir = MediaContainer(ViewGroup='InfoList', title2=showName)
+    dir = MediaContainer(ViewGroup='InfoList', title2=showName, noCache=True)
 
     listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
@@ -1003,5 +999,20 @@ def AddToList(sender, value, list):
         pass
     
     return True
+
+####################################################################################################
+
+def Restart():
+    '''trick the plugin into restarting by "modifying" a file in the bundle'''
+    user = os.getlogin()
+    file = 'Users/'+user+'/Library/Application Support/Plex Media Server/Plug-ins/SickBeard.bundle/Contents/Code/__init__.py'
+    temp = os.open(file, os.O_RDWR)
+    string = os.read(temp, 5000)
+    startOver = os.lseek(temp,0,0)
+    temp3 = os.write(temp, string)
+    Log('Restarting plug-in')
+    return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
+
+>>>>>>> restart
 
 ####################################################################################################
