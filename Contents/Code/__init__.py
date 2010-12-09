@@ -24,7 +24,7 @@ def Start():
     MediaContainer.title1 = NAME
     DirectoryItem.thumb = R(ICON)
     HTTP.CacheTime=3600*3
-
+     
     global TV_SECTION
     TV_SECTION = GetTvSectionID()
     if TV_SECTION == "":
@@ -33,14 +33,26 @@ def Start():
 ####################################################################################################
 
 def ValidatePrefs():
+    Log('User: '+ Prefs['sbUser'] +'\nPass: '+Prefs['sbPass'])
+    
     if Prefs['sbUser'] and Prefs['sbPass']:
         HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+        Log('HTTP authorization set')
+    try:
+        testResponse = HTML.ElementFromURL(Get_SB_URL() +'/home/', errors='ignore', cacheTime=0)
+    except:
+        return MessageContainer(NAME, L('Unable to access SickBeard. Please confirm that the IP address, Port,' +
+            ' Username and Password for your SickBeard install are properly set in the plug-in preferences.'))
     return
 
 ####################################################################################################
 
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
+
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+        Log('HTTP authorization set')
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -163,8 +175,13 @@ def SeriesSelectMenu(sender, showID, showName):
     dir = MediaContainer(title='')
     dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
         showName=showName))
-    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
-        showID=showID, showName=showName))
+    
+    if Client.Platform == ClientPlatform.iOS:
+        dir.Append(Function(PopupDirectoryItem(EditSeries, title="Edit SickBeard series options"),
+            showID=showID, showName=showName))
+    else:
+        dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
+            showID=showID, showName=showName))
     
     return dir
     
@@ -364,8 +381,12 @@ def EditSeries(sender, showID, showName):
     
     seriesPrefs = GetSeriesPrefs(showID)
     
-    dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting', infoLabel=seriesPrefs['qualityPreset'], subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID=showID, showName=showName))
+    if Client.Platform == ClientPlatform.iOS:
+        dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting ['+seriesPrefs['qualityPreset']+']',
+            subtitle='Series: '+ showName, thumb=R(ICON)), showID=showID, showName=showName))
+    else:
+        dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting', infoLabel=seriesPrefs['qualityPreset'], subtitle='Series: '+ showName,
+            thumb=R(ICON)), showID=showID, showName=showName))
     
     if seriesPrefs['paused']:
         dir.Append(Function(DirectoryItem(UnpauseSeries, 'Unpause series', subtitle='Series: ' + showName,
@@ -373,12 +394,21 @@ def EditSeries(sender, showID, showName):
     else:
         dir.Append(Function(DirectoryItem(PauseSeries, 'Pause series', subtitle='Series: ' + showName,
         thumb=R(ICON)), showID=showID, showName=showName))
-    if seriesPrefs['airByDate']:
-        dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date', infoLabel='On',
-            subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+    
+    if Client.Platform == ClientPlatform.iOS:
+        if seriesPrefs['airByDate']:
+            dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date [On]',
+                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+        else:
+            dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date [Off]', infoLabel='Off',
+                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
     else:
-        dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date', infoLabel='Off',
-            subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+        if seriesPrefs['airByDate']:
+            dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date', infoLabel='On',
+                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
+        else:
+            dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date', infoLabel='Off',
+                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
     
     return dir
 
@@ -506,7 +536,7 @@ def AirByDate_On(sender, showID, showName):
     except:
         return MessageContainer('SickBeard', L('"Air by date" command failed'))
     
-    return
+    return MessageContainer('SickBeard', L(showName + '"Air by date" setting turned on.'))
 
 ####################################################################################################
 
@@ -531,7 +561,7 @@ def AirByDate_Off(sender, showID, showName):
     except:
         return MessageContainer('SickBeard', L('Could not turn "Air by date" off.'))
     
-    return
+    return MessageContainer('SickBeard', L(showName + '"Air by date" setting turned off.'))
 
 ####################################################################################################
 
@@ -601,7 +631,7 @@ def DeleteShow(sender, showID):
     Log(updateUrl)
     try:
         updating = HTTP.Request(updateUrl, errors='ignore').content
-        return ShowList()
+        return MessageContainer('SickBeard', L(showName + ' - Deleted from SickBeard database.'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable to delete series'))
 
@@ -973,5 +1003,5 @@ def AddToList(sender, value, list):
         pass
     
     return True
-        
+
 ####################################################################################################
