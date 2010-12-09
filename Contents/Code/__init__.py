@@ -3,7 +3,7 @@ import os
 
 ####################################################################################################
 
-PREFIX = "/video/sickbeard"
+VIDEO_PREFIX = "/video/sickbeard"
 
 NAME = 'SickBeard'
 
@@ -31,6 +31,9 @@ def Start():
     if TV_SECTION == "":
         return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
 
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+    
 ####################################################################################################
 
 def ValidatePrefs():
@@ -46,9 +49,6 @@ def ValidatePrefs():
 
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
-
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -986,11 +986,13 @@ def AddToList(sender, value, list):
 
 def Restart():
     '''trick the plugin into restarting by "modifying" a file in the bundle'''
-    
-    file = '~/Library/Application Support/Plex Media Server/Plugins/SickBeard.bundle/Contents/restart.py'
-    
-    temp = os.write(file, os.read(os.open(file)))
-
+    user = os.getlogin()
+    file = 'Users/'+user+'/Library/Application Support/Plex Media Server/Plug-ins/SickBeard.bundle/Contents/Code/__init__.py'
+    temp = os.open(file, os.O_RDWR)
+    string = os.read(temp, 5000)
+    startOver = os.lseek(temp,0,0)
+    temp3 = os.write(temp, string)
+    Log('Restarting plug-in')
     return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
 
 

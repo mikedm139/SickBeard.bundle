@@ -1,10 +1,9 @@
 [
-
         {
                 "id":                   "sbUser",
                 "label":                "Username",
                 "type":         "text",
-                "default":      "",
+                "default":      ""
         },
 
         {
@@ -12,41 +11,41 @@
                 "label":                "Password",
                 "type":         "text",
                 "option":       "hidden",
-                "default":      "",
+                "default":      ""
         },
 
         {
                 "id":                   "sbIP",
                 "label":                "SickBeardIP",
                 "type":         "text",
-                "default":      "0.0.0.0",
+                "default":      "0.0.0.0"
         },
         
         {
                 "id":                   "sbPort",
                 "label":                "SickBeardPort",
                 "type":         "text",
-                "default":      "8081",
+                "default":      "8081"
         },
         
         {
                 "id":                   "tvDir",
                 "label":                "TV Directory",
                 "type":         "text",
-                "default":      "",
+                "default":      ""
         },
         
         {
                 "id":                   "plexIP",
                 "label":                "Plex IP",
                 "type":         "text",
-                "default":      "localhost",
+                "default":      "localhost"
         },
         
         {
                 "id":                   "tvSection",
                 "label":                "TV Section Name in Plex Library",
                 "type":         "text",
-                "default":      "TV",
-        },
+                "default":      "TV"
+        }
 ]
