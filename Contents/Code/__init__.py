@@ -1,10 +1,11 @@
 import re
+import os
 
 ####################################################################################################
 
-VIDEO_PREFIX = "/video/sickbeard"
+PREFIX = "/video/sickbeard"
 
-NAME = L('SickBeard')
+NAME = 'SickBeard'
 
 ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
@@ -33,14 +34,21 @@ def Start():
 ####################################################################################################
 
 def ValidatePrefs():
+
     if Prefs['sbUser'] and Prefs['sbPass']:
         HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+
+    Restart()
+
     return
 
 ####################################################################################################
 
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
+
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -295,7 +303,7 @@ def SeasonSelectMenu(sender, showID, showName, seasonNum):
 def EpisodeList(sender, showID, showName, seasonInt):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    dir = MediaContainer(ViewGroup='InfoList', title2=showName)
+    dir = MediaContainer(ViewGroup='InfoList', title2=showName, noCache=True)
 
     listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
@@ -974,4 +982,16 @@ def AddToList(sender, value, list):
     
     return True
         
+####################################################################################################
+
+def Restart():
+    '''trick the plugin into restarting by "modifying" a file in the bundle'''
+    
+    file = '~/Library/Application Support/Plex Media Server/Plugins/SickBeard.bundle/Contents/restart.py'
+    
+    temp = os.write(file, os.read(os.open(file)))
+
+    return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
+
+
 ####################################################################################################
