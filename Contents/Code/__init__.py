@@ -13,6 +13,9 @@ SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
 TV_SECTION  = ""
 
+###a temporary standin for yet to be implemented prefs['ArchiveDelete']###
+#ALLOW_DELETE = False
+
 ####################################################################################################
 
 def Start():
@@ -58,6 +61,20 @@ def MainMenu():
             summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
     dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
         summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
+    
+    #if ALLOW_DELETE:
+    #    dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
+    #        subtitle='Mark episodes as "Archived" in SickBeard and remove file',
+    #        summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
+    #        ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
+    #        ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
+    #        ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
+
+    updateValues = CheckForUpdate()
+    if updateValues['available']:
+        dir.Append(Function(PopupDirectoryItem(UpdateSB, 'SickBeard Update Available',
+            'May require you to restart SickBeard', 'Depending on your set-up, you may need to restart' +
+            ' SickBeard after updating.', thumb=R(ICON)), link = updateValues['link']))
 
     return dir
 
@@ -1002,7 +1019,7 @@ def AddToList(sender, value, list):
 
 ####################################################################################################
 
-def Restart():
+def Restart(): ###Remove this once HTTP.SetPassword doesn't require restart###
     '''trick the plugin into restarting by "modifying" a file in the bundle'''
     user = os.getlogin()
     file = 'Users/'+user+'/Library/Application Support/Plex Media Server/Plug-ins/SickBeard.bundle/Contents/Code/__init__.py'
@@ -1011,8 +1028,82 @@ def Restart():
     startOver = os.lseek(temp,0,0)
     temp3 = os.write(temp, string)
     Log('Restarting plug-in')
+    
     return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
 
->>>>>>> restart
+####################################################################################################
+
+def CheckForUpdate():
+    '''check if sickbeard can be updated'''
+    url = Get_SB_URL() + '/home'
+    page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
+    try:
+        updateCheck = page.xpath('//div[@class="message ui-state-highlight ui-corner-all"]/p/a')[1]
+        link = updateCheck.get('href')    
+        Log('Update available: '+link)
+        return {'available':True, 'link':link}
+    except:
+        Log('No update available.')
+        return {'available':False, 'link':None}
 
 ####################################################################################################
+
+def UpdateSB(sender, link):
+    url = Get_SB_URL() + link
+    update = HTTP.Request(url, errors='ignore').content
+    return MessageContainer(NAME, L('SickBeard update started.'))
+    
+####################################################################################################
+
+#def RecentlyViewedMenu(sender):
+#    '''retrieve list of recently viewed episodes and allow option to tell Sickbeard to mark them as
+#    archived and then delete the files (on an individual basis)'''
+#    Log('Test')
+#    dir = MediaContainer(ViewGroup='InfoList', noCache=True)
+#    
+#    showIDs = {}
+#    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0)
+#    for show in showList.xpath('//tr[@class="evenLine"]'):
+#        #try:
+#        tvdbID = show.xpath('.//a')[0].get('href').split('=')[1]
+#        Log(tvdbID)
+#        showName = show.xpath('.//a')[0].text
+#        showIDs = showIDs.list() + {showName:tvdbID}
+#    #    except:
+#    #        pass
+#    
+#    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
+#    recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
+#    
+#    for episode in recentlyViewed.xpath('//video'):
+#        showName = episode.get('grandparenttitle')
+#        Log(showName)
+#        episodeTitle = episode.get('title')
+#        Log(episodeTitle)
+#        epSummary = episode.get('summary')
+#        Log(epSummary)
+#        seasonNumber = episode.get('parentindex')
+#        Log(seasonNumber)
+#        episodeNumber = episode.get('index')
+#        Log(episodeNumber)
+#        file = episode.xpath('.//part')[0].get('file')
+#        tvdbID = showIDs[showName]
+#        dir.Append(Function(PopupDirectoryItem(ArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
+#            subtitle=episodeTitle, summary = epSummary, thumb=GetEpisodeThumb(episode.get('thumb')),
+#            tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file)))
+#    
+#    return dir
+#
+####################################################################################################
+
+#def GetEpisodeThumb(sender, link):
+#    try:
+#        data = HTTP.Request(Get_PMS_URL() + link, cacheTime=CACHE_1MONTH).content
+#        return DataObject(data, 'image/jpeg')
+#    except:
+#        return R(ICON)
+
+####################################################################################################
+
+#def ArchiveAndDelete(sender, tvdbID, season, episode, file):
+#    return
