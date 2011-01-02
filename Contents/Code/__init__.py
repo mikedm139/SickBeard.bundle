@@ -12,9 +12,6 @@ SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
 TV_SECTION  = ""
 
-###a temporary stand-in for yet to be implemented prefs['archiveDelete']###
-ALLOW_DELETE = True
-
 ####################################################################################################
 
 def Start():
@@ -56,7 +53,7 @@ def MainMenu():
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
     dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
             summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
-    if ALLOW_DELETE:
+    if Prefs['archiveDelete']:
         dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
             subtitle='Mark episodes as "Archived" in SickBeard and remove file',
             summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+

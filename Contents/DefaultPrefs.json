@@ -1,58 +1,51 @@
 [
-        {
-                "id":                   "sbUser",
-                "label":                "Username",
-                "type":         "text",
-                "default":      ""
-        },
-
-        {
-                "id":                   "sbPass",
-                "label":                "Password",
-                "type":         "text",
-                "option":       "hidden",
-                "default":      ""
-        },
-
-        {
-                "id":                   "sbIP",
-                "label":                "SickBeardIP",
-                "type":         "text",
-                "default":      "0.0.0.0"
-        },
-        
-        {
-                "id":                   "sbPort",
-                "label":                "SickBeardPort",
-                "type":         "text",
-                "default":      "8081"
-        },
-        
-        {
-                "id":                   "tvDir",
-                "label":                "TV Directory",
-                "type":         "text",
-                "default":      ""
-        },
-        
-        {
-                "id":                   "plexIP",
-                "label":                "Plex IP",
-                "type":         "text",
-                "default":      "localhost"
-        },
-        
-        {
-                "id":                   "tvSection",
-                "label":                "TV Section Name in Plex Library",
-                "type":         "text",
-                "default":      "TV"
-        },
-        
-        {
-                "id":                   "archiveDelete",
-                "label":                "Allow for deleting recently viewed episodes.",
-                "type":         "boolean",
-                "default":      "false"
-        }
+    {
+        "id": "sbUser",
+        "label": "Username",
+        "type": "text",
+        "default": "" 
+    },
+    {
+        "id": "sbPass",
+        "label": "Password",
+        "type": "text",
+        "option": "hidden",
+        "default": "" 
+    },
+    {
+        "id": "sbIP",
+        "label": "SickBeardIP",
+        "type": "text",
+        "default": "0.0.0.0" 
+    },
+    {
+        "id": "sbPort",
+        "label": "SickBeardPort",
+        "type": "text",
+        "default": "8081" 
+    },
+    {
+        "id": "tvDir",
+        "label": "TV Directory",
+        "type": "text",
+        "default": "" 
+    },
+    {
+        "id": "plexIP",
+        "label": "Plex IP",
+        "type": "text",
+        "default": "localhost" 
+    },
+    {
+        "id": "tvSection",
+        "label": "TV Section Name in Plex Library",
+        "type": "text",
+        "default": "TV" 
+    },
+    {
+        "id": "archiveDelete",
+        "label": "Allow for deleting recently viewed episodes.",
+        "type": "bool",
+        "default": "false" 
+    }
 ]
