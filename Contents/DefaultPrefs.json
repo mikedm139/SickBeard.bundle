@@ -47,5 +47,12 @@
                 "label":                "TV Section Name in Plex Library",
                 "type":         "text",
                 "default":      "TV"
+        },
+        
+        {
+                "id":                   "archiveDelete",
+                "label":                "Allow for deleting recently viewed episodes.",
+                "type":         "boolean",
+                "default":      "false"
         }
 ]

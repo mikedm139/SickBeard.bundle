@@ -12,8 +12,8 @@ SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
 TV_SECTION  = ""
 
-###a temporary standin for yet to be implemented prefs['ArchiveDelete']###
-#ALLOW_DELETE = False
+###a temporary stand-in for yet to be implemented prefs['archiveDelete']###
+ALLOW_DELETE = True
 
 ####################################################################################################
 
@@ -43,7 +43,7 @@ def ValidatePrefs():
     if Prefs['sbUser'] and Prefs['sbPass']:
         HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
 
-    Restart()
+    #Restart()
 
     return
 
@@ -56,18 +56,19 @@ def MainMenu():
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
     dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
             summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
+    if ALLOW_DELETE:
+        dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
+            subtitle='Mark episodes as "Archived" in SickBeard and remove file',
+            summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
+            ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
+            ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
+            ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
     dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
             summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
     dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
         summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
-    #if ALLOW_DELETE:
-    #    dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
-    #        subtitle='Mark episodes as "Archived" in SickBeard and remove file',
-    #        summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
-    #        ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
-    #        ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
-    #        ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
+    
 
     updateValues = CheckForUpdate()
     if updateValues['available']:
@@ -80,7 +81,7 @@ def MainMenu():
 ####################################################################################################
 
 def ComingEpisodes(sender):
-    dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes')
+    dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes', noCache=True)
     url = Get_SB_URL() + '/comingEpisodes'
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
     
@@ -1040,7 +1041,7 @@ def CheckForUpdate():
     page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
     try:
         updateCheck = page.xpath('//div[@class="message ui-state-highlight ui-corner-all"]/p/a')[1]
-        link = updateCheck.get('href')    
+        link = updateCheck.get('href')
         Log('Update available: '+link)
         return {'available':True, 'link':link}
     except:
@@ -1052,61 +1053,78 @@ def CheckForUpdate():
 def UpdateSB(sender, link):
     url = Get_SB_URL() + link
     update = HTTP.Request(url, errors='ignore').content
-    #sleep(30)
-    #restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
+    restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
     return MessageContainer(NAME, L('SickBeard update started.'))
     
 ####################################################################################################
 
-#def RecentlyViewedMenu(sender):
-#    '''retrieve list of recently viewed episodes and allow option to tell Sickbeard to mark them as
-#    archived and then delete the files (on an individual basis)'''
-#    Log('Test')
-#    dir = MediaContainer(viewGroup='InfoList', noCache=True)
-#    
-#    showIDs = {}
-#    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0)
-#    for show in showList.xpath('//tr[@class="evenLine"]'):
-#        #try:
-#        tvdbID = show.xpath('.//a')[0].get('href').split('=')[1]
-#        Log(tvdbID)
-#        showName = show.xpath('.//a')[0].text
-#        showIDs = showIDs.list() + {showName:tvdbID}
-#    #    except:
-#    #        pass
-#    
-#    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
-#    recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
-#    
-#    for episode in recentlyViewed.xpath('//video'):
-#        showName = episode.get('grandparenttitle')
-#        Log(showName)
-#        episodeTitle = episode.get('title')
-#        Log(episodeTitle)
-#        epSummary = episode.get('summary')
-#        Log(epSummary)
-#        seasonNumber = episode.get('parentindex')
-#        Log(seasonNumber)
-#        episodeNumber = episode.get('index')
-#        Log(episodeNumber)
-#        file = episode.xpath('.//part')[0].get('file')
-#        tvdbID = showIDs[showName]
-#        dir.Append(Function(PopupDirectoryItem(ArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
-#            subtitle=episodeTitle, summary = epSummary, thumb=GetEpisodeThumb(episode.get('thumb')),
-#            tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file)))
-#    
-#    return dir
-#
-####################################################################################################
-
-#def GetEpisodeThumb(sender, link):
-#    try:
-#        data = HTTP.Request(Get_PMS_URL() + link, cacheTime=CACHE_1MONTH).content
-#        return DataObject(data, 'image/jpeg')
-#    except:
-#        return R(ICON)
+def RecentlyViewedMenu(sender):
+    '''retrieve list of recently viewed episodes and allow option to tell Sickbeard to mark them as
+    archived and then delete the files (on an individual basis)'''
+    dir = MediaContainer(viewGroup='InfoList', title2='Archive/Delete', noCache=True)
+    
+    showIDs = {}
+    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0)
+    for show in showList.xpath('//tr[@class="evenLine"]'):
+        #try:
+        tvdbID = show.xpath('.//a')[0].get('href').split('=')[1]
+        #Log(tvdbID)
+        showName = show.xpath('.//a')[0].text
+        showIDs[showName] = tvdbID
+    #    except:
+    #        pass
+    
+    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
+    recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
+    
+    for episode in recentlyViewed.xpath('//video'):
+        showName = episode.get('grandparenttitle')
+        #Log(showName)
+        episodeTitle = episode.get('title')
+        #Log(episodeTitle)
+        epSummary = episode.get('summary')
+        #Log(epSummary)
+        seasonNumber = episode.get('parentindex')
+        #Log(seasonNumber)
+        episodeNumber = episode.get('index')
+        #Log(episodeNumber)
+        file = episode.xpath('.//part')[0].get('file')
+        tvdbID = showIDs[showName]
+        dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
+            subtitle=episodeTitle, summary = epSummary),
+            tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
+    
+    #,thumb=GetEpisodeThumb(link=episode.get('thumb'))
+    
+    return dir
 
 ####################################################################################################
 
-#def ArchiveAndDelete(sender, tvdbID, season, episode, file):
-#    return
+def GetEpisodeThumb(link):
+    try:
+        data = HTTP.Request(Get_PMS_URL() + link, cacheTime=CACHE_1MONTH).content
+        return DataObject(data, 'image/jpeg')
+    except:
+        return R(ICON)
+
+####################################################################################################
+
+def ConfirmArchiveAndDelete(sender, tvdbID, season, episode, file):
+
+    dir = MediaContainer()
+    
+    dir.Append(Function(DirectoryItem(ArchiveAndDelete, 'Delete the selected episode?'), tvdbID, season, episode, file))
+    
+    return dir
+
+####################################################################################################
+
+def ArchiveAndDelete(sender, tvdbID, season, episode, file):
+    
+    archiveUrl = Get_SB_URL() + '/home/setStatus?show=%s&eps=%sx%s&status=6' % (tvdbID, season, episode)
+    markArchived = HTTP.Request(archiveUrl, cacheTime=0).content
+    
+    ### delete the given episode ###
+    os.remove(file)
+    
+    return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system. Changes will be reflected after the next Library Update.'))
