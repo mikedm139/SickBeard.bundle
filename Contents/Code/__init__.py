@@ -1,4 +1,5 @@
 import re, os, subprocess
+from base64 import b64encode
 
 ####################################################################################################
 
@@ -30,15 +31,25 @@ def Start():
     if TV_SECTION == "":
         return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
 
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+    #if Prefs['sbUser'] and Prefs['sbPass']:
+    #    HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
     
+####################################################################################################
+
+def AuthHeader():
+    header = {}
+
+    if Prefs['sbUser'] and Prefs['sbPass']:
+        header = {'Authorization': 'Basic ' + b64encode(Prefs['sbUser'] + ':' + Prefs['sbPass'])}
+
+    return header
+
 ####################################################################################################
 
 def ValidatePrefs():
 
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
+    #if Prefs['sbUser'] and Prefs['sbPass']:
+    #    HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
 
     #Restart()
 
@@ -80,7 +91,7 @@ def MainMenu():
 def ComingEpisodes(sender):
     dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes', noCache=True)
     url = Get_SB_URL() + '/comingEpisodes'
-    episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
+    episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     
     for episode in episodesPage.xpath('//div[@class="listing"]'):
         showName    = episode.xpath('a')[0].get('name')
@@ -105,8 +116,8 @@ def SearchResults(sender,query):
     addFolderUrl = Get_SB_URL()+'/home/addShows/addShows/?showDirs='+newShowFolder
     url = Get_SB_URL() + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
     
-    addFolderResult = HTTP.Request(addFolderUrl).content
-    tvdbResult = JSON.ObjectFromURL(url).get("results")
+    addFolderResult = HTTP.Request(addFolderUrl, headers=AuthHeader()).content
+    tvdbResult = JSON.ObjectFromURL(url, headers=AuthHeader()).get("results")
     
     for item in tvdbResult:
         tvdbID = item[0]
@@ -126,7 +137,7 @@ def ShowList(sender):
     '''List all shows that SickBeard manages, and relevant info about each show'''
     dir = MediaContainer(ViewGroup="InfoList", title2="All Shows")
     url = Get_SB_URL() + '/home/'
-    showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
+    showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     for show in showsPage.xpath('//tr[@class="evenLine"]'):
         next    = show.xpath('td')[0].text
         if next == None:
@@ -221,7 +232,7 @@ def AddShow(sender, name, ID):
         postValues = {'whichSeries' : str(ID), 'skipShow' : "0", 'showToAdd' : String.Quote(Prefs['tvDir']+'/'+name, usePlus=True)}
     url = Get_SB_URL() + '/home/addShows/addSingleShow'
     #Log(postValues['showToAdd'])
-    redirect = HTTP.Request(url, postValues).content
+    redirect = HTTP.Request(url, postValues, headers=AuthHeader()).content
     
     #Log(str(result))
     
@@ -288,7 +299,7 @@ def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
     dir = MediaContainer(ViewGroup='InfoList', title2=showName)
-    listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore')
+    listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore', headers=AuthHeader())
     seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     epCount = GetEpisodes(showID, 'all')
     #Log(epCount)
@@ -322,7 +333,7 @@ def EpisodeList(sender, showID, showName, seasonInt):
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
     dir = MediaContainer(ViewGroup='InfoList', title2=showName, noCache=True)
 
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     for episode in episodeList.xpath('//tr'):
         if episode.get('class') == "seasonheader":
@@ -350,6 +361,7 @@ def EpisodeList(sender, showID, showName, seasonInt):
         else:
             # display all episode for the given season of the given series
             epNum = episode.xpath('.//a')[0].get('name')
+            ### Need to make changes here so that series with more than 9 seasons list episodes properly
             if str(epNum)[0:len(str(seasonInt))] == seasonInt:
                 epNum = str(epNum)[(len(str(seasonInt))+1):]
                 #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
@@ -438,7 +450,7 @@ def ForceFullUpdate(sender, showID):
     updateUrl = Get_SB_URL() + '/home/updateShow?show=' + showID +'&force=1'
     #Log(updateUrl)
     try:
-        updating = HTTP.Request(updateUrl, errors='ignore').content
+        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
         return MessageContainer('SickBeard Plugin', L('Force search started'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
@@ -450,7 +462,7 @@ def RescanFiles(sender, showID):
     updateUrl = Get_SB_URL() + '/home/refreshShow?show=' + showID
     #Log(updateUrl)
     try:
-        updating = HTTP.Request(updateUrl, errors='ignore').content
+        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
         return MessageContainer('SickBeard Plugin', L('Full file scan started'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable to start file scan'))
@@ -462,7 +474,7 @@ def RenameEpisodes(sender, showID):
     updateUrl = Get_SB_URL() + '/home/fixEpisodeNames?show=' + showID
     #Log(updateUrl)
     try:
-        updating = HTTP.Request(updateUrl, errors='ignore').content
+        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
         return MessageContainer('SickBeard Plugin', L('Episode renaming process started'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable to start renaming process'))
@@ -488,7 +500,7 @@ def PauseSeries(sender, showID, showName):
         
     url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
     try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     except:
         return MessageContainer('SickBeard', L('Series Pause command failed'))
     
@@ -514,7 +526,7 @@ def UnpauseSeries(sender, showID, showName):
     
     url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
     try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     except:
         return MessageContainer('SickBeard', L('Series Unpause command failed'))
     
@@ -540,7 +552,7 @@ def AirByDate_On(sender, showID, showName):
         
     url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
     try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     except:
         return MessageContainer('SickBeard', L('"Air by date" command failed'))
     
@@ -565,7 +577,7 @@ def AirByDate_Off(sender, showID, showName):
     
     url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
     try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     except:
         return MessageContainer('SickBeard', L('Could not turn "Air by date" off.'))
     
@@ -576,7 +588,7 @@ def AirByDate_Off(sender, showID, showName):
 def GetSeriesPrefs(showID):
     '''get the existing selections from the series edit page'''
     url = Get_SB_URL() + '/home/editShow?show=' + showID
-    page = HTTP.Request(url, errors='ignore', cacheTime=0).content
+    page = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     seriesPrefs = (page).replace('SELECTED', 'selected=True')
     seriesPrefs = (seriesPrefs).replace('CHECKED', 'checked=True')
     seriesPrefs = re.sub('(<option.*>)\n', '\1</option>', seriesPrefs)
@@ -638,7 +650,7 @@ def DeleteShow(sender, showID):
     updateUrl = Get_SB_URL() + '/home/deleteShow?show=' + showID
     #Log(updateUrl)
     try:
-        updating = HTTP.Request(updateUrl, errors='ignore').content
+        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
         return MessageContainer('SickBeard', L(showName + ' - Deleted from SickBeard database.'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable to delete series'))
@@ -705,7 +717,7 @@ def ChangeSeriesQuality(sender, showID, showName, qualityPreset):
     url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
     
     try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0).content
+        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
     except:
         return MessageContainer('SickBeard', L('Failed to change quality settings.'))
     
@@ -857,7 +869,7 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
         return MessageContainer('SickBeard Plugin', L('Episode never aired. Cannot force search.'))
     
     try:
-        updating = HTTP.Request(updateUrl, errors='ignore').content
+        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
         #Log(updating)
         return MessageContainer('SickBeard Plugin', L('Force search started'))
     except:
@@ -871,7 +883,7 @@ def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
     url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+episodeNum+'&status=3'
     
     try:
-        result = HTTP.Request(url, errors='ignore').content
+        result = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
         return MessageContainer('SickBeard Plugin', L('Episode marked as wanted'))
     except:
         return MessageContainer('SickBeard Plugin', L('Error - unable mark as wanted'))
@@ -884,7 +896,7 @@ def MarkSeasonWanted(sender, showID, seasonInt):
     #url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3'
     
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     episodesMarked = 0
     for episode in episodeList.xpath('//tr'):
@@ -922,7 +934,7 @@ def GetEpisodes(showID, seasonInt):
         for the given season of the given series'''
     
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0)
+    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     allEpisodes = 0
     haveEpisodes = 0
@@ -1035,7 +1047,7 @@ def Restart(): ###Remove this once HTTP.SetPassword doesn't require restart###
 def CheckForUpdate():
     '''check if sickbeard can be updated'''
     url = Get_SB_URL() + '/home'
-    page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0)
+    page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     try:
         updateCheck = page.xpath('//div[@class="message ui-state-highlight ui-corner-all"]/p/a')[1]
         link = updateCheck.get('href')
@@ -1049,7 +1061,7 @@ def CheckForUpdate():
 
 def UpdateSB(sender, link):
     url = Get_SB_URL() + link
-    update = HTTP.Request(url, errors='ignore').content
+    update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
     restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
     return MessageContainer(NAME, L('SickBeard update started.'))
     
@@ -1061,7 +1073,7 @@ def RecentlyViewedMenu(sender):
     dir = MediaContainer(viewGroup='InfoList', title2='Archive/Delete', noCache=True)
     
     showIDs = {}
-    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0)
+    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0, headers=AuthHeader())
     for show in showList.xpath('//tr[@class="evenLine"]'):
         #try:
         tvdbID = show.xpath('.//a')[0].get('href').split('=')[1]
@@ -1074,9 +1086,13 @@ def RecentlyViewedMenu(sender):
     recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
     recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     
-    for episode in recentlyViewed.xpath('//video'):
+    test=0
+    
+    for episode in recentlyViewed.xpath('//Video'):
+        test +=1
+        Log(test)
         showName = episode.get('grandparenttitle')
-        #Log(showName)
+        Log(showName)
         episodeTitle = episode.get('title')
         #Log(episodeTitle)
         epSummary = episode.get('summary')
@@ -1087,9 +1103,14 @@ def RecentlyViewedMenu(sender):
         #Log(episodeNumber)
         file = episode.xpath('.//part')[0].get('file')
         tvdbID = showIDs[showName]
-        dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
-            subtitle=episodeTitle, summary = epSummary),
-            tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
+        try:
+            viewCount = int(episode.get('viewCount'))
+        except:
+            viewCount = 0
+        if viewCount >= 1:
+            dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
+                subtitle=episodeTitle, summary = epSummary),
+                tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
     
     #,thumb=GetEpisodeThumb(link=episode.get('thumb'))
     
@@ -1119,7 +1140,7 @@ def ConfirmArchiveAndDelete(sender, tvdbID, season, episode, file):
 def ArchiveAndDelete(sender, tvdbID, season, episode, file):
     
     archiveUrl = Get_SB_URL() + '/home/setStatus?show=%s&eps=%sx%s&status=6' % (tvdbID, season, episode)
-    markArchived = HTTP.Request(archiveUrl, cacheTime=0).content
+    markArchived = HTTP.Request(archiveUrl, cacheTime=0, headers=AuthHeader()).content
     
     ### delete the given episode ###
     os.remove(file)
