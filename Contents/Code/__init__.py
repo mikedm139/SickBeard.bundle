@@ -1084,35 +1084,36 @@ def RecentlyViewedMenu(sender):
     #        pass
     
     recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
-    recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
+    #recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
+    recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     
-    test=0
     
     for episode in recentlyViewed.xpath('//Video'):
-        test +=1
-        Log(test)
-        showName = episode.get('grandparenttitle')
-        Log(showName)
+        showName = episode.get('grandparentTitle')
+        #Log(showName)
         episodeTitle = episode.get('title')
         #Log(episodeTitle)
         epSummary = episode.get('summary')
         #Log(epSummary)
-        seasonNumber = episode.get('parentindex')
-        #Log(seasonNumber)
+        seasonNumber = episode.get('parentIndex')
+        #Log('Season:'+seasonNumber)
         episodeNumber = episode.get('index')
-        #Log(episodeNumber)
-        file = episode.xpath('.//part')[0].get('file')
+        #Log('Episode:'+episodeNumber)
+        file = episode.xpath('.//Part')[0].get('file')
+        #Log(file)
+        thumbUrl = episode.get('thumb')
         tvdbID = showIDs[showName]
         try:
             viewCount = int(episode.get('viewCount'))
         except:
             viewCount = 0
+        #Log('viewCount:'+str(viewCount))
         if viewCount >= 1:
             dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
                 subtitle=episodeTitle, summary = epSummary),
                 tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
     
-    #,thumb=GetEpisodeThumb(link=episode.get('thumb'))
+    #,thumb=GetEpisodeThumb(link=thumbUrl)
     
     return dir
 
@@ -1123,7 +1124,7 @@ def GetEpisodeThumb(link):
         data = HTTP.Request(Get_PMS_URL() + link, cacheTime=CACHE_1MONTH).content
         return DataObject(data, 'image/jpeg')
     except:
-        return R(ICON)
+        return Redirect(R(ICON))
 
 ####################################################################################################
 
@@ -1145,4 +1146,5 @@ def ArchiveAndDelete(sender, tvdbID, season, episode, file):
     ### delete the given episode ###
     os.remove(file)
     
-    return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system. Changes will be reflected after the next Library Update.'))
+    return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system.'+
+        ' Changes will be reflected after the next Library Update.'))
