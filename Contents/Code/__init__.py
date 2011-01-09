@@ -11,12 +11,16 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
-TV_SECTION  = ""
+TV_SECTION  = ''
 
 ####################################################################################################
 
 def Start():
-    Plugin.AddPrefixHandler(VIDEO_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
+    Dict['TvSectionID'] = None
+    if Dict['TvSectionID'] == None:
+        Plugin.AddPrefixHandler(VIDEO_PREFIX, GetTvSectionID, L('SickBeard'), ICON, ART)
+    else:
+        Plugin.AddPrefixHandler(VIDEO_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
     Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
@@ -26,13 +30,6 @@ def Start():
     DirectoryItem.thumb = R(ICON)
     HTTP.CacheTime=3600*3
      
-    global TV_SECTION
-    TV_SECTION = GetTvSectionID()
-    if TV_SECTION == "":
-        return MessageContainer('SickBeard Plugin', L('Unable to locate Plex library TV metadata. Check Plugin Prefs.'))
-
-    #if Prefs['sbUser'] and Prefs['sbPass']:
-    #    HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
     
 ####################################################################################################
 
@@ -59,6 +56,9 @@ def ValidatePrefs():
 
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
+    
+    global TV_SECTION
+    TV_SECTION = Dict['TvSectionID']
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -77,7 +77,6 @@ def MainMenu():
         summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
     
-
     updateValues = CheckForUpdate()
     if updateValues['available']:
         dir.Append(Function(PopupDirectoryItem(UpdateSB, 'SickBeard Update Available',
@@ -274,11 +273,31 @@ def GetSeasonThumb(showName, seasonInt):
 def GetTvSectionID():
     '''Determine what section(s) are TV series in Plex library'''
     
-    library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections')
-    sectionID = library.xpath('//directory[@type="show"]')[0].get('key')
-    #Log('TV section ID: ' + sectionID)
-    return sectionID
+    dir = MediaContainer(title2='Choose TV section', noCache=True)
+    library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections', cacheTime=0)
+    showSections = []
+    for section in library.xpath('//directory'):
+        if section.get('type') == 'show':
+            showSections.append({'title':section.get('title'), 'key':section.get('key')})
     
+    if len(showSections) > 1:
+        for section in showSections:
+            dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
+        return dir
+    elif len(showSections) == 1:
+        Dict['TvSectionID'] = showSections[0]['key']
+        return MainMenu()
+    else:
+        return MessageContainer(Name, L('Could not identify a section of TV episodes.'))
+
+    return MainMenu()
+    
+####################################################################################################
+
+def ForceTvSection(sender, sectionID):
+    Dict['TvSectionID'] = sectionID
+    return MainMenu()
+
 ####################################################################################################
 
 def GetSummary(showName):
@@ -362,22 +381,33 @@ def EpisodeList(sender, showID, showName, seasonInt):
             # display all episode for the given season of the given series
             epNum = episode.xpath('.//a')[0].get('name')
             ### Need to make changes here so that series with more than 9 seasons list episodes properly
-            if str(epNum)[0:len(str(seasonInt))] == seasonInt:
-                epNum = str(epNum)[(len(str(seasonInt))+1):]
-                #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
-                epTitle = str(episode.xpath('./td')[4].text)[10:-10]
-                #Log('Title: ' + epTitle)
-                epDate = episode.xpath('./td')[5].text
-                #Log('AirDate: ' + epDate)
-                epFile = str(episode.xpath('./td')[6].text)[2:-7]
-                #Log(epFile)
-                epStatus = episode.xpath('./td')[7].text
-                #Log('Status: ' + epStatus)
-                dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
-                    infoLabel=epStatus, subtitle='Status: '+epStatus,
-                    summary="Airdate: "+epDate+"\nFileName: "+epFile,
-                    thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
-                    episodeNum=epNum))
+            try:
+                nextDigit=epNum[len(str(seasonInt))]
+                Log('nextDigit='+nextDigit)
+            except:
+                nextDigit='-1'
+                Log('nextDigit='+nextDigit)
+            Log('Character at position '+ epNum[len(str(seasonInt))] + ' is ' + nextDigit)
+            if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
+                #ignore season with more digits than what we're searching for
+                continue
+            else:
+                if str(epNum)[0:len(str(seasonInt))] == seasonInt:
+                    epNum = str(epNum)[(len(str(seasonInt))+1):]
+                    #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
+                    epTitle = str(episode.xpath('./td')[4].text)[10:-10]
+                    #Log('Title: ' + epTitle)
+                    epDate = episode.xpath('./td')[5].text
+                    #Log('AirDate: ' + epDate)
+                    epFile = str(episode.xpath('./td')[6].text)[2:-7]
+                    #Log(epFile)
+                    epStatus = episode.xpath('./td')[7].text
+                    #Log('Status: ' + epStatus)
+                    dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
+                        infoLabel=epStatus, subtitle='Status: '+epStatus,
+                        summary="Airdate: "+epDate+"\nFileName: "+epFile,
+                        thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
+                        episodeNum=epNum))
         
     return dir
 
@@ -960,20 +990,34 @@ def GetEpisodes(showID, seasonInt):
         else:
             # count all episode for the given season of the given series
             epNum = episode.xpath('.//a')[0].get('name')
-            if str(epNum)[0:len(str(seasonInt))] == seasonInt:
-                epNum = str(epNum)[(len(str(seasonInt))+1):]
-                epStatus = episode.xpath('./td')[7].text
-                #Log('Status: ' + epStatus)
-                if epStatus == 'Skipped':
-                    allEpisodes += 1
-                elif epStatus == 'Unaired':
-                    allEpisodes += 1
-                elif epStatus == 'Wanted':
-                    allEpisodes += 1
+            try:
+                nextDigit=epNum[len(str(seasonInt))]
+                Log('epNum = %s and seasonInt = %s' % (epNum, seasonInt))
+                Log('nextDigit='+nextDigit)
+                Log('Character at position %s is %s' % (len(str(seasonInt)), nextDigit))
+                if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
+                    #ignore season with more digits than what we're searching for
+                    Log('ignore me')
+                    continue
                 else:
-                    allEpisodes += 1
-                    haveEpisodes += 1
-         
+                    Log('Take a closer look')
+                    if str(epNum)[0:len(str(seasonInt))] == seasonInt:
+                        Log('Count me')
+                        epNum = str(epNum)[(len(str(seasonInt))):]
+                        epStatus = episode.xpath('./td')[7].text
+                        #Log('Status: ' + epStatus)
+                        if epStatus == 'Skipped':
+                            allEpisodes += 1
+                        elif epStatus == 'Unaired':
+                            allEpisodes += 1
+                        elif epStatus == 'Wanted':
+                            allEpisodes += 1
+                        else:
+                            allEpisodes += 1
+                            haveEpisodes += 1
+            except:
+                continue
+
         
     epCount = str(haveEpisodes)+'/'+str(allEpisodes)
     return epCount
@@ -1110,10 +1154,8 @@ def RecentlyViewedMenu(sender):
         #Log('viewCount:'+str(viewCount))
         if viewCount >= 1:
             dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
-                subtitle=episodeTitle, summary = epSummary),
+                subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)),
                 tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
-    
-    #,thumb=GetEpisodeThumb(link=thumbUrl)
     
     return dir
 
