@@ -11,12 +11,11 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
-TV_SECTION  = ''
+#TV_SECTION  = ''
 
 ####################################################################################################
 
 def Start():
-    Dict['TvSectionID'] = None
     if Dict['TvSectionID'] == None:
         Plugin.AddPrefixHandler(VIDEO_PREFIX, GetTvSectionID, L('SickBeard'), ICON, ART)
     else:
@@ -57,8 +56,9 @@ def ValidatePrefs():
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
     
-    global TV_SECTION
-    TV_SECTION = Dict['TvSectionID']
+    #global TV_SECTION
+    #TV_SECTION = Dict['TvSectionID']
+    Log('Loading TV sectionID: ' + Dict['TvSectionID'])
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -92,15 +92,16 @@ def ComingEpisodes(sender):
     url = Get_SB_URL() + '/comingEpisodes'
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     
-    for episode in episodesPage.xpath('//div[@class="listing"]'):
-        showName    = episode.xpath('a')[0].get('name')
-        #Log('Found: '+ showName)
-        airsNext    = episode.xpath('div/p[1]/span')[1].text
-        timeSlot    = episode.xpath('div/p[2]/span')[3].text
+    for episode in episodesPage.xpath('//div[@class="tvshowDiv"]'):
+        showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
+        Log('Found: '+ showName)
+        airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
+        timeSlot    = episode.xpath('.//tr[3]/td/span')[3].text
+        epSummary   = episode.xpath('.//tr[3]/td/span')[0].text
         updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
-        #Log(updateUrl)
+        Log(updateUrl)
         dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
-            summary="Next episode: "+airsNext, thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
+            summary="Next episode: %s\nSummary: %s" % (airsNext, epSummary), thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
     
     return dir
 
@@ -137,55 +138,59 @@ def ShowList(sender):
     dir = MediaContainer(ViewGroup="InfoList", title2="All Shows")
     url = Get_SB_URL() + '/home/'
     showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
-    for show in showsPage.xpath('//tr[@class="evenLine"]'):
-        next    = show.xpath('td')[0].text
-        if next == None:
-            next = "unknown"
-        #Log('Next airs: '+next)
-        name    = show.xpath('td[2]//text()')[0]
-        #Log(name)
-        try:
-            link  = show.xpath('td[2]/a')[0].get('href')
-        except:
-            dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel='???',
-                subtitle='Episodes: ???', summary='Unable to find showID for this series in SickBeard. Please' +
-                'check the web interface to confirm that this series was properly added. No functions will work for' + 
-                'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
-            pass
-        #Log(link)
-        showID = re.findall('=(\d+)$', link)[0]
-        #Log(showID)
-        network = show.xpath('td')[2].text
-        if network == None:
-            network = "unknown"
-        #Log('Network: '+network)
-        quality = str(show.xpath('td')[3].text)[2:]
-        #Log('Download quatlity: '+quality)
-        episodes = str(show.xpath('td[5]/comment()')[0])[4:-3]
-        #Log(episodes)
-        status  = show.xpath('td')[6].text
-        if status == None:
-            status = "Not Available"
-        #Log("Status: "+status)
-        showSummary = GetSummary(name)
-        if showSummary == None:
-            showSummary = "Not available"
-        if status == "Continuing":
-            info    = ('Next Episode: ' + str(next) + '\n' +
-                    'Airs on: ' + network + '\n' +
-                    'Status: ' + status + '\n' +
-                    'Download quality: ' + quality + '\n' +
-                    'Summary: ' + showSummary)
-        else:
-            info    = ('Aired on: ' + network + '\n' +
-                    'Status: ' + status + '\n' +
-                    'Download quality: ' + quality + '\n' +
-                    'Summary: ' + showSummary)
-
-        updateUrl = '/home/updateShow?show=' + showID +'&force=1'
-        dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel=episodes,
-            subtitle='Episodes: '+episodes, summary=info, thumb=Function(GetSeriesThumb, showName=name)),
-            showID=showID, showName=name))
+    for show in showsPage.xpath('//table[@id="showListTable"]/tbody/tr'):
+            #Log(show.get('class'))
+        #try:
+            next    = show.xpath('./td')[0].text
+            if next == None:
+                next = "unknown"
+            #Log('Next airs: '+next)
+            name    = show.xpath('./td[2]//text()')[0]
+            #Log(name)
+            try:
+                link  = show.xpath('./td[2]/a')[0].get('href')
+            except:
+                dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel='???',
+                    subtitle='Episodes: ???', summary='Unable to find showID for this series in SickBeard. Please' +
+                    'check the web interface to confirm that this series was properly added. No functions will work for' + 
+                    'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
+                pass
+            #Log(link)
+            showID = re.findall('=(\d+)$', link)[0]
+            #Log(showID)
+            network = show.xpath('td')[2].text
+            if network == None:
+                network = "unknown"
+            #Log('Network: '+network)
+            quality = str(show.xpath('td')[3].text)[2:]
+            #Log('Download quatlity: '+quality)
+            episodes = str(show.xpath('td[5]/comment()')[0])[4:-3]
+            #Log(episodes)
+            status  = show.xpath('td')[6].text
+            if status == None:
+                status = "Not Available"
+            #Log("Status: "+status)
+            showSummary = GetSummary(name)
+            if showSummary == None:
+                showSummary = "Not available"
+            if status == "Continuing":
+                info    = ('Next Episode: ' + str(next) + '\n' +
+                        'Airs on: ' + network + '\n' +
+                        'Status: ' + status + '\n' +
+                        'Download quality: ' + quality + '\n' +
+                        'Summary: ' + showSummary)
+            else:
+                info    = ('Aired on: ' + network + '\n' +
+                        'Status: ' + status + '\n' +
+                        'Download quality: ' + quality + '\n' +
+                        'Summary: ' + showSummary)
+    
+            updateUrl = '/home/updateShow?show=' + showID +'&force=1'
+            dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel=episodes,
+                subtitle='Episodes: '+episodes, summary=info, thumb=Function(GetSeriesThumb, showName=name)),
+                showID=showID, showName=name))
+        #except:
+        #    continue
     return dir
     
 ####################################################################################################    
@@ -242,7 +247,7 @@ def AddShow(sender, name, ID):
 def GetSeriesThumb(showName):
     '''retrieve the thumbnail image from the Plex metadata database based on the title of the series'''
 
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
     try:
         seriesThumb = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('thumb')
@@ -257,7 +262,7 @@ def GetSeasonThumb(showName, seasonInt):
     '''retrieve the season thumbnail image from the Plex metadata database based on the title of the series'''
     seasonString = "season " + seasonInt
     #Log("Getting thumb for " + seasonString)
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
     try:
         seasonListUrl = Get_PMS_URL() + tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('key')
@@ -281,11 +286,14 @@ def GetTvSectionID():
             showSections.append({'title':section.get('title'), 'key':section.get('key')})
     
     if len(showSections) > 1:
+        Log('There are %d sections which contain "shows"' % len(showSections))
         for section in showSections:
             dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
         return dir
     elif len(showSections) == 1:
+        Log('There is 1 section which contains shows.')
         Dict['TvSectionID'] = showSections[0]['key']
+        Log('TV sectionID saved.')
         return MainMenu()
     else:
         return MessageContainer(Name, L('Could not identify a section of TV episodes.'))
@@ -296,6 +304,7 @@ def GetTvSectionID():
 
 def ForceTvSection(sender, sectionID):
     Dict['TvSectionID'] = sectionID
+    Log('TV sectionID saved.')
     return MainMenu()
 
 ####################################################################################################
@@ -303,7 +312,7 @@ def ForceTvSection(sender, sectionID):
 def GetSummary(showName):
     '''retrieve the series summary from the Plex metadata database based on the title of the series'''
 
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/all'
+    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
     tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore', cacheTime=CACHE_1MONTH)
     try:
         summary = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('summary')
@@ -1118,16 +1127,17 @@ def RecentlyViewedMenu(sender):
     
     showIDs = {}
     showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0, headers=AuthHeader())
-    for show in showList.xpath('//tr[@class="evenLine"]'):
+    for show in showList.xpath('//table[@id="showListTable"]/tbody/tr'):
         #try:
-        tvdbID = show.xpath('.//a')[0].get('href').split('=')[1]
-        #Log(tvdbID)
-        showName = show.xpath('.//a')[0].text
+        tvdbID = show.xpath('./td[2]/a')[0].get('href').split('=')[1]
+        Log(tvdbID)
+        showName = show.xpath('./td[2]//text()')[0]
+        Log(showName)
         showIDs[showName] = tvdbID
     #    except:
     #        pass
     
-    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + TV_SECTION + '/recentlyViewed'
+    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/recentlyViewed'
     #recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     
