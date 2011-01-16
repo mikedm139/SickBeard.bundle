@@ -93,13 +93,23 @@ def ComingEpisodes(sender):
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     
     for episode in episodesPage.xpath('//div[@class="tvshowDiv"]'):
-        showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
-        Log('Found: '+ showName)
-        airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
-        timeSlot    = episode.xpath('.//tr[3]/td/span')[3].text
-        epSummary   = episode.xpath('.//tr[3]/td/span')[0].text
-        updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
-        Log(updateUrl)
+        try:
+            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
+            #Log('Found: '+ showName)
+            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
+            timeSlot    = episode.xpath('.//tr[3]/td/span')[3].text
+            epSummary   = episode.xpath('.//tr[3]/td/span')[0].text
+            updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
+            #Log(updateUrl)
+        except: # Based on Whymse's changes for results Down Under
+            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
+            Log('Found: '+ showName)
+            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
+            Log('airsNext: ' + airsNext)
+            timeSlot    = episode.xpath('.//tr[4]/td/span')[2].text
+            Log('timeSlot: ' + timeSlot)
+            epSummary   = episode.xpath('.//tr[4]/td/span')[0].text
+            updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
         dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
             summary="Next episode: %s\nSummary: %s" % (airsNext, epSummary), thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
     
@@ -1083,20 +1093,6 @@ def AddToList(sender, value, list):
 
 ####################################################################################################
 
-def Restart(): ###Remove this once HTTP.SetPassword doesn't require restart###
-    '''trick the plugin into restarting by "modifying" a file in the bundle'''
-    user = os.getlogin()
-    file = 'Users/'+user+'/Library/Application Support/Plex Media Server/Plug-ins/SickBeard.bundle/Contents/Code/__init__.py'
-    temp = os.open(file, os.O_RDWR)
-    string = os.read(temp, 5000)
-    startOver = os.lseek(temp,0,0)
-    temp3 = os.write(temp, string)
-    Log('Restarting plug-in')
-    
-    return MessageContainer(NAME, L('Restarting plugin for changes to take effect.'))
-
-####################################################################################################
-
 def CheckForUpdate():
     '''check if sickbeard can be updated'''
     url = Get_SB_URL() + '/home'
@@ -1130,9 +1126,9 @@ def RecentlyViewedMenu(sender):
     for show in showList.xpath('//table[@id="showListTable"]/tbody/tr'):
         #try:
         tvdbID = show.xpath('./td[2]/a')[0].get('href').split('=')[1]
-        Log(tvdbID)
+        #Log(tvdbID)
         showName = show.xpath('./td[2]//text()')[0]
-        Log(showName)
+        #Log(showName)
         showIDs[showName] = tvdbID
     #    except:
     #        pass
@@ -1141,6 +1137,7 @@ def RecentlyViewedMenu(sender):
     #recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     
+    archive = True
     
     for episode in recentlyViewed.xpath('//Video'):
         showName = episode.get('grandparentTitle')
@@ -1156,16 +1153,21 @@ def RecentlyViewedMenu(sender):
         file = episode.xpath('.//Part')[0].get('file')
         #Log(file)
         thumbUrl = episode.get('thumb')
-        tvdbID = showIDs[showName]
+        try:
+            tvdbID = showIDs[showName]
+        except:
+            archive = False
         try:
             viewCount = int(episode.get('viewCount'))
         except:
             viewCount = 0
-        #Log('viewCount:'+str(viewCount))
+        Log('viewCount:'+str(viewCount))
         if viewCount >= 1:
             dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
                 subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)),
-                tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file))
+                tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file, archive=archive))
+        else:
+            continue
     
     return dir
 
@@ -1180,23 +1182,34 @@ def GetEpisodeThumb(link):
 
 ####################################################################################################
 
-def ConfirmArchiveAndDelete(sender, tvdbID, season, episode, file):
+def ConfirmArchiveAndDelete(sender, tvdbID, season, episode, file, archive):
 
     dir = MediaContainer()
-    
-    dir.Append(Function(DirectoryItem(ArchiveAndDelete, 'Delete the selected episode?'), tvdbID, season, episode, file))
+    if archive:
+        dir.Append(Function(DirectoryItem(ArchiveAndDelete, title='Archive&Delete this episode?'), tvdbID=tvdbID,
+            season=season, episode=episode, file=file, archive=archive))
+    else:
+        dir.Append(Function(DirectoryItem(ArchiveAndDelete, title='Delete this episode?'), tvdbID=tvdbID,
+            season=season, episode=episode, file=file, archive=archive))
     
     return dir
 
 ####################################################################################################
 
-def ArchiveAndDelete(sender, tvdbID, season, episode, file):
+def ArchiveAndDelete(sender, tvdbID, season, episode, file, archive):
     
-    archiveUrl = Get_SB_URL() + '/home/setStatus?show=%s&eps=%sx%s&status=6' % (tvdbID, season, episode)
-    markArchived = HTTP.Request(archiveUrl, cacheTime=0, headers=AuthHeader()).content
+    if archive:
+        archiveUrl = Get_SB_URL() + '/home/setStatus?show=%s&eps=%sx%s&status=6' % (tvdbID, season, episode)
+        markArchived = HTTP.Request(archiveUrl, cacheTime=0, headers=AuthHeader()).content
     
-    ### delete the given episode ###
-    os.remove(file)
+        ### delete the given episode ###
+        os.remove(file)
     
-    return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system.'+
-        ' Changes will be reflected after the next Library Update.'))
+        return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system.'+
+            ' Changes will be reflected after the next Library Update.'))
+    else:
+            ### delete the given episode ###
+        os.remove(file)
+    
+        return MessageContainer(NAME, L('Episode deleted from system.'+
+            ' Changes will be reflected after the next Library Update.'))
