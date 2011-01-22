@@ -97,7 +97,7 @@ def ComingEpisodes(sender):
             showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
             #Log('Found: '+ showName)
             airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
-            timeSlot    = episode.xpath('.//tr[3]/td/span')[3].text
+            timeSlot    = episode.xpath('.//tr[3]/td/span')[2].text
             epSummary   = episode.xpath('.//tr[3]/td/span')[0].text
             updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
             #Log(updateUrl)
@@ -1098,7 +1098,7 @@ def CheckForUpdate():
     url = Get_SB_URL() + '/home'
     page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     try:
-        updateCheck = page.xpath('//div[@class="message ui-state-highlight ui-corner-all"]/p/a')[1]
+        updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
         link = updateCheck.get('href')
         Log('Update available: '+link)
         return {'available':True, 'link':link}
@@ -1110,7 +1110,10 @@ def CheckForUpdate():
 
 def UpdateSB(sender, link):
     url = Get_SB_URL() + link
-    update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
+    try:
+        update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
+    except:
+        pass
     restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
     return MessageContainer(NAME, L('SickBeard update started.'))
     
