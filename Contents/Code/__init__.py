@@ -222,7 +222,7 @@ def SeriesSelectMenu(sender, showID, showName):
     
 ####################################################################################################
 
-def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum=""):
+def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum="", file=""):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
     if url != "":
@@ -233,8 +233,12 @@ def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum=""):
             showID=showID, seasonNum=seasonNum, episodeNum=episodeNum))
         dir.Append(Function(PopupDirectoryItem(MarkEpisodeWanted, title="Mark this episode as wanted"),
             showID=showID, seasonNum=seasonNum, episodeNum=episodeNum))
+    if Prefs['archiveDelete']:
+        if file != "":
+            dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title='Archive and Delete this episode'),
+                tvdbID=showID, season=seasonNum, episode=episodeNum, file=file, archive=True))
     return dir
-    
+
 ####################################################################################################
 
 def AddShow(sender, name, ID):
@@ -386,15 +390,22 @@ def EpisodeList(sender, showID, showName, seasonInt):
             #Log('Title: ' + epTitle)
             epDate = episode.xpath('./td')[5].text
             #Log('AirDate: ' + epDate)
-            epFile = str(episode.xpath('./td')[6].text)[2:-7]
-            #Log(epFile)
+            epFile = str(episode.xpath('./td')[6].text)[2:-8]
+            if epFile != '':
+                if str(Prefs['tvDir'])[-1] == '/':
+                    filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
+                else:
+                    filePath = Prefs['tvDir']+'/%s/%s' % (showName, epFile)
+            else:
+                filePath = ''
+            #Log(filePath)
             epStatus = episode.xpath('./td')[7].text
             #Log('Status: ' + epStatus)
             dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
                 infoLabel=epStatus, subtitle='Status: '+epStatus,
-                summary="Airdate: "+epDate+"\nFileName: "+epFile,
+                summary="Airdate: "+epDate+"\nFileName: "+filePath,
                 thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
-                episodeNum=epNum))
+                episodeNum=epNum, file=filePath))
 
         else:
             # display all episode for the given season of the given series
@@ -402,11 +413,11 @@ def EpisodeList(sender, showID, showName, seasonInt):
             ### Need to make changes here so that series with more than 9 seasons list episodes properly
             try:
                 nextDigit=epNum[len(str(seasonInt))]
-                Log('nextDigit='+nextDigit)
+                #Log('nextDigit='+nextDigit)
             except:
                 nextDigit='-1'
-                Log('nextDigit='+nextDigit)
-            Log('Character at position '+ epNum[len(str(seasonInt))] + ' is ' + nextDigit)
+                #Log('nextDigit='+nextDigit)
+            #Log('Character at position '+ epNum[len(str(seasonInt))] + ' is ' + nextDigit)
             if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
                 #ignore season with more digits than what we're searching for
                 continue
@@ -418,15 +429,23 @@ def EpisodeList(sender, showID, showName, seasonInt):
                     #Log('Title: ' + epTitle)
                     epDate = episode.xpath('./td')[5].text
                     #Log('AirDate: ' + epDate)
-                    epFile = str(episode.xpath('./td')[6].text)[2:-7]
+                    epFile = str(episode.xpath('./td')[6].text)[2:-8]
+                    if epFile != '':
+                        if str(Prefs['tvDir'])[-1] == '/':
+                            filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
+                        else:
+                            filePath = Prefs['tvDir']+'/%s/%s' % (showName, epFile)
+                    else:
+                        filePath = ''
+                    #Log(filePath)
                     #Log(epFile)
                     epStatus = episode.xpath('./td')[7].text
                     #Log('Status: ' + epStatus)
                     dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
                         infoLabel=epStatus, subtitle='Status: '+epStatus,
-                        summary="Airdate: "+epDate+"\nFileName: "+epFile,
+                        summary="Airdate: "+epDate+"\nFileName: "+filePath,
                         thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
-                        episodeNum=epNum))
+                        episodeNum=epNum, file=filePath))
         
     return dir
 
@@ -1011,17 +1030,17 @@ def GetEpisodes(showID, seasonInt):
             epNum = episode.xpath('.//a')[0].get('name')
             try:
                 nextDigit=epNum[len(str(seasonInt))]
-                Log('epNum = %s and seasonInt = %s' % (epNum, seasonInt))
-                Log('nextDigit='+nextDigit)
-                Log('Character at position %s is %s' % (len(str(seasonInt)), nextDigit))
+                #Log('epNum = %s and seasonInt = %s' % (epNum, seasonInt))
+                #Log('nextDigit='+nextDigit)
+                #Log('Character at position %s is %s' % (len(str(seasonInt)), nextDigit))
                 if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
                     #ignore season with more digits than what we're searching for
-                    Log('ignore me')
+                    #Log('ignore me')
                     continue
                 else:
-                    Log('Take a closer look')
+                    #Log('Take a closer look')
                     if str(epNum)[0:len(str(seasonInt))] == seasonInt:
-                        Log('Count me')
+                        #Log('Count me')
                         epNum = str(epNum)[(len(str(seasonInt))):]
                         epStatus = episode.xpath('./td')[7].text
                         #Log('Status: ' + epStatus)
