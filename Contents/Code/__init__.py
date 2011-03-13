@@ -52,7 +52,7 @@ def MainMenu():
     
     #global TV_SECTION
     #TV_SECTION = Dict['TvSectionID']
-    Log('Loading TV sectionID: ' + Dict['TvSectionID'])
+    #Log('Loading TV sectionID: ' + Dict['TvSectionID'])
 
     dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
             summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
@@ -246,7 +246,7 @@ def DefaultSettingsMenu(sender):
     
     dir = MediaContainer(noCache=True)
     
-    Log(Dict['DefaultSettings']['defaultStatus'])
+    #Log(Dict['DefaultSettings']['defaultStatus'])
     if Dict['DefaultSettings']['defaultStatus'] == '3':
         statusLabel = "Wanted"
     elif Dict['DefaultSettings']['defaultStatus'] == '5':
@@ -272,7 +272,7 @@ def AddShow(sender, name, ID, settings):
     dir = MessageContainer("SickBeard", L('Show added to list'))
     if str(Prefs['tvDir'])[-1] == '/':
         Prefs['tvDir'] = str(Prefs['tvDir'])[:-2]
-        Log(Prefs['tvDir'])
+        #Log(Prefs['tvDir'])
     
     if settings == 'default':
         if Dict['DefaultSettings']['anyQualities'] == 'SD':
@@ -370,7 +370,7 @@ def CustomAddShow(sender, name, ID):
     '''Tell SickBeard to add the given show to the watched/wanted list'''
     dir = MediaContainer(noCache=True)
     
-    Log(Dict['CustomSettings']['defaultStatus'])
+    #Log(Dict['CustomSettings']['defaultStatus'])
     if Dict['CustomSettings']['defaultStatus'] == '3':
         statusLabel = "Wanted"
     elif Dict['CustomSettings']['defaultStatus'] == '5':
@@ -490,14 +490,14 @@ def GetTvSectionID():
             showSections.append({'title':section.get('title'), 'key':section.get('key')})
     
     if len(showSections) > 1:
-        Log('There are %d sections which contain "shows"' % len(showSections))
+        #Log('There are %d sections which contain "shows"' % len(showSections))
         for section in showSections:
             dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
         return dir
     elif len(showSections) == 1:
-        Log('There is 1 section which contains shows.')
+        #Log('There is 1 section which contains shows.')
         Dict['TvSectionID'] = showSections[0]['key']
-        Log('TV sectionID saved.')
+        #Log('TV sectionID saved.')
         return MainMenu()
     else:
         return MessageContainer(NAME, L('Could not identify a section of TV episodes.'))
@@ -508,7 +508,7 @@ def GetTvSectionID():
 
 def ForceTvSection(sender, sectionID):
     Dict['TvSectionID'] = sectionID
-    Log('TV sectionID saved.')
+    #Log('TV sectionID saved.')
     return MainMenu()
 
 ####################################################################################################
@@ -601,9 +601,9 @@ def EpisodeList(sender, showID, showName, seasonInt):
             # display all episode for the given season of the given series
             try:
                 epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
-                Log(epNum)
+                #Log(epNum)
             except:
-                Log('epNum not found')
+                #Log('epNum not found')
                 continue
             ### Need to make changes here so that series with more than 9 seasons list episodes properly
             try:
@@ -1321,10 +1321,10 @@ def CheckForUpdate():
     try:
         updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
         link = updateCheck.get('href')
-        Log('Update available: '+link)
+        #Log('Update available: '+link)
         return {'available':True, 'link':link}
     except:
-        Log('No update available.')
+        #Log('No update available.')
         return {'available':False, 'link':None}
 
 ####################################################################################################
