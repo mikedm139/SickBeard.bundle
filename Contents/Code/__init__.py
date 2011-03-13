@@ -21,6 +21,11 @@ def Start():
     else:
         Plugin.AddPrefixHandler(VIDEO_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
+    if Dict['DefaultSettings'] == None:
+        Dict['DefaultSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '3',  'seasonFolders' : 'on', 'anyQualities' : 'HD', 'skipShow' : ''}
+    if Dict['CustomSettings'] == None:
+        Dict['CustomSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '',  'seasonFolders' : '', 'anyQualities' : '', 'skipShow' : ''}
+    
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
     Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
 
@@ -39,17 +44,6 @@ def AuthHeader():
         header = {'Authorization': 'Basic ' + b64encode(Prefs['sbUser'] + ':' + Prefs['sbPass'])}
 
     return header
-
-####################################################################################################
-
-def ValidatePrefs():
-
-    #if Prefs['sbUser'] and Prefs['sbPass']:
-    #    HTTP.SetPassword(url=Get_SB_URL(), username=Prefs['sbUser'], password=Prefs['sbPass'])
-
-    #Restart()
-
-    return
 
 ####################################################################################################
 
@@ -73,6 +67,7 @@ def MainMenu():
             ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
     dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
             summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
+    dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
     dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
         summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
@@ -97,18 +92,18 @@ def ComingEpisodes(sender):
             showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
             #Log('Found: '+ showName)
             airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
-            timeSlot    = episode.xpath('.//tr[3]/td/span')[2].text
-            epSummary   = episode.xpath('.//tr[3]/td/span')[0].text
+            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text
+            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text
             updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
             #Log(updateUrl)
         except: # Based on Whymse's changes for results Down Under
             showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
-            Log('Found: '+ showName)
+            #Log('Found: '+ showName)
             airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
-            Log('airsNext: ' + airsNext)
-            timeSlot    = episode.xpath('.//tr[4]/td/span')[2].text
-            Log('timeSlot: ' + timeSlot)
-            epSummary   = episode.xpath('.//tr[4]/td/span')[0].text
+            #Log('airsNext: ' + airsNext)
+            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text
+            #Log('timeSlot: ' + timeSlot)
+            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text
             updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
         dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
             summary="Next episode: %s\nSummary: %s" % (airsNext, epSummary), thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
@@ -119,14 +114,9 @@ def ComingEpisodes(sender):
 
 def SearchResults(sender,query):
     dir = MediaContainer(ViewGroup="InfoList",title2="Search Results")
-    
-    #tell SickBeard to create the folder in the TV directory
-    newShowFolder = String.Quote(Prefs['tvDir']+'/'+query, usePlus=True)
-    #Log(newShowFolder)
-    addFolderUrl = Get_SB_URL()+'/home/addShows/addShows/?showDirs='+newShowFolder
+
     url = Get_SB_URL() + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
     
-    addFolderResult = HTTP.Request(addFolderUrl, headers=AuthHeader()).content
     tvdbResult = JSON.ObjectFromURL(url, headers=AuthHeader()).get("results")
     
     for item in tvdbResult:
@@ -136,7 +126,7 @@ def SearchResults(sender,query):
         if startDate == None:
             startDate = "Unknown"
         #Log("Found: " +showName)
-        dir.Append(Function(DirectoryItem(AddShow,title=showName,subtitle="TVDB: "+str(tvdbID),
+        dir.Append(Function(PopupDirectoryItem(AddShowMenu,title=showName,subtitle="TVDB: "+str(tvdbID),
             summary="First aired: "+startDate),name=showName,ID=tvdbID))
     
     return dir
@@ -241,15 +231,133 @@ def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum="", fi
 
 ####################################################################################################
 
-def AddShow(sender, name, ID):
+def AddShowMenu(sender, name, ID):
+    
+    dir = MediaContainer()
+    
+    dir.Append(Function(DirectoryItem(AddShow, "Add with default settings"), name=name, ID=ID, settings='default'))
+    dir.Append(Function(DirectoryItem(CustomAddShow, "Add with custom settings"), name=name, ID=ID))
+    
+    return dir
+    
+####################################################################################################
+
+def DefaultSettingsMenu(sender):
+    
+    dir = MediaContainer(noCache=True)
+    
+    Log(Dict['DefaultSettings']['defaultStatus'])
+    if Dict['DefaultSettings']['defaultStatus'] == '3':
+        statusLabel = "Wanted"
+    elif Dict['DefaultSettings']['defaultStatus'] == '5':
+        statusLabel = "Skipped"
+    elif Dict['DefaultSettings']['defaultStatus'] == '6':
+        statusLabel = "Archived"
+    elif Dict['DefaultSettings']['defaultStatus'] == '7':
+        statusLabel = "Ignored"
+    else:
+        statusLabel = ""
+    
+    dir.Append(Function(PopupDirectoryItem(SetLanguage, "TVDB Language", infoLabel=Dict['DefaultSettings']['tvdbLang']), group="Default"))
+    dir.Append(Function(PopupDirectoryItem(SetStatus, "Status of previous episodes", infoLabel=statusLabel), group="Default"))
+    dir.Append(Function(PopupDirectoryItem(SetSeasonFolders, "Use season Folders", infoLabel=Dict['DefaultSettings']['seasonFolders']), group="Default"))
+    dir.Append(Function(PopupDirectoryItem(SetQuality, "Download quality", infoLabel=Dict['DefaultSettings']['anyQualities']), group="Default"))
+    
+    return dir
+    
+####################################################################################################
+
+def AddShow(sender, name, ID, settings):
     '''Tell SickBeard to add the given show to the watched/wanted list'''
     dir = MessageContainer("SickBeard", L('Show added to list'))
     if str(Prefs['tvDir'])[-1] == '/':
-        postValues = {'whichSeries' : str(ID), 'skipShow' : "0", 'showToAdd' : String.Quote(Prefs['tvDir']+name, usePlus=True)}
-    else:
-        postValues = {'whichSeries' : str(ID), 'skipShow' : "0", 'showToAdd' : String.Quote(Prefs['tvDir']+'/'+name, usePlus=True)}
-    url = Get_SB_URL() + '/home/addShows/addSingleShow'
+        Prefs['tvDir'] = str(Prefs['tvDir'])[:-2]
+        Log(Prefs['tvDir'])
+    
+    if settings == 'default':
+        if Dict['DefaultSettings']['anyQualities'] == 'SD':
+            postValues = {
+                'tvdbLang'      : Prefs['TVDBlang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
+                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
+                'anyQualities'  : '1',
+                'anyQualities'  : '2',
+                'skipShow'      : ''
+            }
+        elif Dict['DefaultSettings']['anyQualities'] == 'HD':
+            postValues = {
+                'tvdbLang'      : Prefs['TVDBlang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
+                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
+                'anyQualities'  : '4',
+                'anyQualities'  : '8',
+                'anyQualities'  : '16',
+                'skipShow'      : ''
+            }
+        else: #Dict['DefaultSettings']['anyQualities'] == 'Any':
+            postValues = {
+                'tvdbLang'      : Prefs['TVDBlang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
+                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
+                'anyQualities'  : '1',
+                'anyQualities'  : '2',
+                'anyQualities'  : '4',
+                'anyQualities'  : '8',
+                'anyQualities'  : '16',
+                'anyQualities'  : '32768',
+                'skipShow'      : ''
+            }
+        
+    else: # setting = 'custom'
+        
+        if Dict['CustomSettings']['anyQualities'] == 'SD':
+            postValues = {
+                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
+                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
+                'anyQualities'  : '1',
+                'anyQualities'  : '2',
+                'skipShow'      : ''
+            }
+        elif Dict['CustomSettings']['anyQualities'] == 'HD':
+            postValues = {
+                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
+                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
+                'anyQualities'  : '4',
+                'anyQualities'  : '8',
+                'anyQualities'  : '16',
+                'skipShow'      : ''
+            }
+        else: #Dict['CustomSettings']['anyQualities'] == 'Any':
+            postValues = {
+                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
+                'whichSeries'   : '%d|%s' % (ID, name),
+                'rootDir'       : String.Quote(Prefs['tvDir']),
+                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
+                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
+                'anyQualities'  : '1',
+                'anyQualities'  : '2',
+                'anyQualities'  : '4',
+                'anyQualities'  : '8',
+                'anyQualities'  : '16',
+                'anyQualities'  : '32768',
+                'skipShow'      : ''
+            }
+    
+    url = Get_SB_URL() + '/home/addShows/addNewShow'
     #Log(postValues['showToAdd'])
+    SanitizeFileName = HTTP.Request(Get_SB_URL() + '/home/addShows/sanitizeFileName?name=' + String.Quote(name, usePlus=True), headers=AuthHeader()).content
     redirect = HTTP.Request(url, postValues, headers=AuthHeader()).content
     
     #Log(str(result))
@@ -257,6 +365,88 @@ def AddShow(sender, name, ID):
     return dir
     
 ####################################################################################################
+
+def CustomAddShow(sender, name, ID):
+    '''Tell SickBeard to add the given show to the watched/wanted list'''
+    dir = MediaContainer(noCache=True)
+    
+    Log(Dict['CustomSettings']['defaultStatus'])
+    if Dict['CustomSettings']['defaultStatus'] == '3':
+        statusLabel = "Wanted"
+    elif Dict['CustomSettings']['defaultStatus'] == '5':
+        statusLabel = "Skipped"
+    elif Dict['CustomSettings']['defaultStatus'] == '6':
+        statusLabel = "Archived"
+    elif Dict['CustomSettings']['defaultStatus'] == '7':
+        statusLabel = "Ignored"
+    else:
+        statusLabel = ""
+    
+    dir.Append(Function(PopupDirectoryItem(SetLanguage, "TVDB Language", infoLabel=Dict['CustomSettings']['tvdbLang']), group="Custom"))
+    dir.Append(Function(PopupDirectoryItem(SetStatus, "Status of previous episodes", infoLabel=statusLabel), group="Custom"))
+    dir.Append(Function(PopupDirectoryItem(SetSeasonFolders, "Use season Folders", infoLabel=Dict['CustomSettings']['seasonFolders']), group="Custom"))
+    dir.Append(Function(PopupDirectoryItem(SetQuality, "Download quality", infoLabel=Dict['CustomSettings']['anyQualities']), group="Custom"))
+    dir.Append(Function(DirectoryItem(AddShow, "Add with these settings"), name=name, ID=ID, settings='custom'))
+    
+    return dir
+    
+####################################################################################################
+
+def SetLanguage(sender, group):
+    dir = MediaContainer()
+    dir.Append(Function(DirectoryItem(ChangeSetting, "en"), setting = "tvdbLang", value = "en", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "de"), setting = "tvdbLang", value = "de", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "es"), setting = "tvdbLang", value = "es", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "fr"), setting = "tvdbLang", value = "fr", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "it"), setting = "tvdbLang", value = "it", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "ja"), setting = "tvdbLang", value = "ja", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "ko"), setting = "tvdbLang", value = "ko", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "nl"), setting = "tvdbLang", value = "nl", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "pt"), setting = "tvdbLang", value = "pt", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "ru"), setting = "tvdbLang", value = "ru", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "zh"), setting = "tvdbLang", value = "zh", group=group))
+    return dir
+
+####################################################################################################
+
+def SetStatus(sender, group):
+    dir = MediaContainer()
+    dir.Append(Function(DirectoryItem(ChangeSetting, "Wanted"), setting = "defaultStatus", value = "3", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "Skipped"), setting = "defaultStatus", value = "5", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "Archived"), setting = "defaultStatus", value = "6", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "Ignored"), setting = "defaultStatus", value = "7", group=group))
+    return dir
+
+####################################################################################################
+
+def SetSeasonFolders(sender, group):
+    dir = MediaContainer()
+    dir.Append(Function(DirectoryItem(ChangeSetting, "on"), setting = "seasonFolders", value = "on", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "off"), setting = "seasonFolders", value = "", group=group))
+    return dir
+
+####################################################################################################
+
+def SetQuality(sender, group):
+    dir = MediaContainer()
+    dir.Append(Function(DirectoryItem(ChangeSetting, "SD"), setting = "anyQualities", value = "SD", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "HD"), setting = "anyQualities", value = "HD", group=group))
+    dir.Append(Function(DirectoryItem(ChangeSetting, "Any"), setting = "anyQualities", value = "Any", group=group))
+    return dir
+
+####################################################################################################
+
+def ChangeSetting(sender, setting, value, group):
+    
+    if group == 'Custom':
+        Dict['CustomSettings'][setting] = value
+    elif group == 'Default':
+        Dict['DefaultSettings'][setting] = value
+    
+    return
+
+####################################################################################################
+
 
 def GetSeriesThumb(showName):
     '''retrieve the thumbnail image from the Plex metadata database based on the title of the series'''
@@ -310,7 +500,7 @@ def GetTvSectionID():
         Log('TV sectionID saved.')
         return MainMenu()
     else:
-        return MessageContainer(Name, L('Could not identify a section of TV episodes.'))
+        return MessageContainer(NAME, L('Could not identify a section of TV episodes.'))
 
     return MainMenu()
     
@@ -409,7 +599,12 @@ def EpisodeList(sender, showID, showName, seasonInt):
 
         else:
             # display all episode for the given season of the given series
-            epNum = episode.xpath('.//a')[0].get('name')
+            try:
+                epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
+                Log(epNum)
+            except:
+                Log('epNum not found')
+                continue
             ### Need to make changes here so that series with more than 9 seasons list episodes properly
             try:
                 nextDigit=epNum[len(str(seasonInt))]
@@ -1007,13 +1202,19 @@ def GetEpisodes(showID, seasonInt):
     allEpisodes = 0
     haveEpisodes = 0
     for episode in episodeList.xpath('//tr'):
+        #Log(episode.get('class'))
         if episode.get('class') == "seasonheader":
             pass
         elif episode.get('class') == None:
             pass
         elif seasonInt == 'all':
             # count all episodes for the given series
-            epNum = episode.xpath('.//a')[0].get('name')
+            try:
+                epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
+                #Log(epNum)
+            except:
+                #Log('epNum not found')
+                continue
             epStatus = episode.xpath('./td')[7].text
             #Log(epStatus)
             if epStatus == 'Skipped':
@@ -1027,7 +1228,8 @@ def GetEpisodes(showID, seasonInt):
                 haveEpisodes += 1
         else:
             # count all episode for the given season of the given series
-            epNum = episode.xpath('.//a')[0].get('name')
+            try: epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
+            except: continue
             try:
                 nextDigit=epNum[len(str(seasonInt))]
                 #Log('epNum = %s and seasonInt = %s' % (epNum, seasonInt))
@@ -1183,7 +1385,7 @@ def RecentlyViewedMenu(sender):
             viewCount = int(episode.get('viewCount'))
         except:
             viewCount = 0
-        Log('viewCount:'+str(viewCount))
+        #Log('viewCount:'+str(viewCount))
         if viewCount >= 1:
             dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
                 subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)),

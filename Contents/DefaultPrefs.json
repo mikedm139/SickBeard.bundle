@@ -37,10 +37,11 @@
         "default": "localhost" 
     },
     {
-        "id": "tvSection",
-        "label": "TV Section Name in Plex Library",
-        "type": "text",
-        "default": "TV" 
+        "id": "TVDBlang",
+        "label": "TVDB Language",
+        "type": "enum",
+        "values": ["en", "cs", "da", "de", "el", "es", "fi", "fr", "he", "hr", "hu", "it", "ja", "ko", "nl", "no", "pl", "pt", "ru", "sl", "sv", "tr", "zh"],
+        "default": "en"
     },
     {
         "id": "archiveDelete",
