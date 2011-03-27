@@ -1345,15 +1345,15 @@ def RecentlyViewedMenu(sender):
     archived and then delete the files (on an individual basis)'''
     dir = MediaContainer(viewGroup='InfoList', title2='Archive/Delete', noCache=True)
     
-    showIDs = {}
-    showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0, headers=AuthHeader())
-    for show in showList.xpath('//table[@id="showListTable"]/tbody/tr'):
-        #try:
-        tvdbID = show.xpath('./td[2]/a')[0].get('href').split('=')[1]
-        #Log(tvdbID)
-        showName = show.xpath('./td[2]//text()')[0]
-        #Log(showName)
-        showIDs[showName] = tvdbID
+    #showIDs = {}
+    #showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0, headers=AuthHeader())
+    #for show in showList.xpath('//table[@id="showListTable"]/tbody/tr'):
+    #    #try:
+    #    tvdbID = show.xpath('./td[2]/a')[0].get('href').split('=')[1]
+    #    #Log(tvdbID)
+    #    showName = show.xpath('./td[2]//text()')[0]
+    #    #Log(showName)
+    #    showIDs[showName] = tvdbID
     #    except:
     #        pass
     
@@ -1361,7 +1361,7 @@ def RecentlyViewedMenu(sender):
     #recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     
-    archive = True
+    #archive = True
     
     for episode in recentlyViewed.xpath('//Video'):
         showName = episode.get('grandparentTitle')
@@ -1377,19 +1377,18 @@ def RecentlyViewedMenu(sender):
         file = episode.xpath('.//Part')[0].get('file')
         #Log(file)
         thumbUrl = episode.get('thumb')
-        try:
-            tvdbID = showIDs[showName]
-        except:
-            archive = False
+    #    try:
+    #        tvdbID = showIDs[showName]
+    #    except:
+    #        archive = False
         try:
             viewCount = int(episode.get('viewCount'))
         except:
             viewCount = 0
         #Log('viewCount:'+str(viewCount))
         if viewCount >= 1:
-            dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
-                subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)),
-                tvdbID=tvdbID, season=seasonNumber, episode=episodeNumber, file=file, archive=archive))
+            dir.Append(Function(PopupDirectoryItem(ConfirmDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
+                subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)), file=file))
         else:
             continue
     
@@ -1406,34 +1405,18 @@ def GetEpisodeThumb(link):
 
 ####################################################################################################
 
-def ConfirmArchiveAndDelete(sender, tvdbID, season, episode, file, archive):
+def ConfirmDelete(sender, file):
 
-    dir = MediaContainer()
-    if archive:
-        dir.Append(Function(DirectoryItem(ArchiveAndDelete, title='Archive&Delete this episode?'), tvdbID=tvdbID,
-            season=season, episode=episode, file=file, archive=archive))
-    else:
-        dir.Append(Function(DirectoryItem(ArchiveAndDelete, title='Delete this episode?'), tvdbID=tvdbID,
-            season=season, episode=episode, file=file, archive=archive))
-    
+    dir = MediaContainer(title2='Delete?')
+    dir.Append(Function(DirectoryItem(DeleteEpisode, title='Delete this episode?'), file=file))
     return dir
 
 ####################################################################################################
 
-def ArchiveAndDelete(sender, tvdbID, season, episode, file, archive):
+def DeleteEpisode(sender, file):
     
-    if archive:
-        archiveUrl = Get_SB_URL() + '/home/setStatus?show=%s&eps=%sx%s&status=6' % (tvdbID, season, episode)
-        markArchived = HTTP.Request(archiveUrl, cacheTime=0, headers=AuthHeader()).content
+    ### delete the given episode ###
+    os.remove(file)
     
-        ### delete the given episode ###
-        os.remove(file)
-    
-        return MessageContainer(NAME, L('Episode marked "Archived" and deleted from system.'+
-            ' Changes will be reflected after the next Library Update.'))
-    else:
-            ### delete the given episode ###
-        os.remove(file)
-    
-        return MessageContainer(NAME, L('Episode deleted from system.'+
-            ' Changes will be reflected after the next Library Update.'))
+    return MessageContainer(NAME, L('Episode deleted from system.'+
+        ' Changes will be reflected after the next Library Update.'))
