@@ -84,7 +84,7 @@ def MainMenu():
 
 def ComingEpisodes(sender):
     dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes', noCache=True)
-    url = Get_SB_URL() + '/comingEpisodes'
+    url = Get_SB_URL() + '/comingEpisodes?layout=banner'
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     
     for episode in episodesPage.xpath('//div[@class="tvshowDiv"]'):
