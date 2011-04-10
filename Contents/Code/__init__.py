@@ -3,7 +3,7 @@ from base64 import b64encode
 
 ####################################################################################################
 
-VIDEO_PREFIX = "/video/sickbeard"
+APPLICATION_PREFIX = "/application/sickbeard"
 
 NAME = 'SickBeard'
 
@@ -17,9 +17,9 @@ PREFS_ICON  = 'icon-prefs.png'
 
 def Start():
     if Dict['TvSectionID'] == None:
-        Plugin.AddPrefixHandler(VIDEO_PREFIX, GetTvSectionID, L('SickBeard'), ICON, ART)
+        Plugin.AddPrefixHandler(APPLICATION_PREFIX, GetTvSectionID, L('SickBeard'), ICON, ART)
     else:
-        Plugin.AddPrefixHandler(VIDEO_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
+        Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     if Dict['DefaultSettings'] == None:
         Dict['DefaultSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '3',  'seasonFolders' : 'on', 'anyQualities' : 'HD', 'skipShow' : ''}
@@ -1345,24 +1345,9 @@ def RecentlyViewedMenu(sender):
     archived and then delete the files (on an individual basis)'''
     dir = MediaContainer(viewGroup='InfoList', title2='Archive/Delete', noCache=True)
     
-    #showIDs = {}
-    #showList = HTML.ElementFromURL(Get_SB_URL()+'/home', errors='ignore', cacheTime=0, headers=AuthHeader())
-    #for show in showList.xpath('//table[@id="showListTable"]/tbody/tr'):
-    #    #try:
-    #    tvdbID = show.xpath('./td[2]/a')[0].get('href').split('=')[1]
-    #    #Log(tvdbID)
-    #    showName = show.xpath('./td[2]//text()')[0]
-    #    #Log(showName)
-    #    showIDs[showName] = tvdbID
-    #    except:
-    #        pass
-    
     recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/recentlyViewed'
-    #recentlyViewed = HTML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
     recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
-    
-    #archive = True
-    
+        
     for episode in recentlyViewed.xpath('//Video'):
         showName = episode.get('grandparentTitle')
         #Log(showName)
@@ -1377,10 +1362,6 @@ def RecentlyViewedMenu(sender):
         file = episode.xpath('.//Part')[0].get('file')
         #Log(file)
         thumbUrl = episode.get('thumb')
-    #    try:
-    #        tvdbID = showIDs[showName]
-    #    except:
-    #        archive = False
         try:
             viewCount = int(episode.get('viewCount'))
         except:
