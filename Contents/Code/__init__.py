@@ -83,7 +83,7 @@ def MainMenu():
 ####################################################################################################
 
 def ComingEpisodes(sender):
-    dir = MediaContainer(ViewGroup='InfoList', title2='Coming Episodes', noCache=True)
+    dir = MediaContainer(viewGroup='InfoList', title2='Coming Episodes', noCache=True)
     url = Get_SB_URL() + '/comingEpisodes?layout=banner'
     episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     
@@ -113,7 +113,7 @@ def ComingEpisodes(sender):
 ####################################################################################################
 
 def SearchResults(sender,query):
-    dir = MediaContainer(ViewGroup="InfoList",title2="Search Results")
+    dir = MediaContainer(viewGroup="InfoList",title2="Search Results")
 
     url = Get_SB_URL() + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
     
@@ -135,7 +135,7 @@ def SearchResults(sender,query):
 
 def ShowList(sender):
     '''List all shows that SickBeard manages, and relevant info about each show'''
-    dir = MediaContainer(ViewGroup="InfoList", title2="All Shows")
+    dir = MediaContainer(viewGroup="InfoList", title2="All Shows")
     url = Get_SB_URL() + '/home/'
     showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     for show in showsPage.xpath('//table[@id="showListTable"]/tbody/tr'):
@@ -530,7 +530,10 @@ def GetSummary(showName):
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    dir = MediaContainer(ViewGroup='InfoList', title2=showName)
+    if Client.Platform == ClientPlatform.iOS:
+        dir = MediaContainer(viewGroup='List', title2=showName)
+    else:
+        dir = MediaContainer(viewGroup='InfoList', title2=showName)
     listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore', headers=AuthHeader())
     seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
     epCount = GetEpisodes(showID, 'all')
@@ -563,7 +566,7 @@ def SeasonSelectMenu(sender, showID, showName, seasonNum):
 def EpisodeList(sender, showID, showName, seasonInt):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
     episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    dir = MediaContainer(ViewGroup='InfoList', title2=showName, noCache=True)
+    dir = MediaContainer(viewGroup='InfoList', title2=showName, noCache=True)
 
     listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
     episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
@@ -651,7 +654,7 @@ def EditSeries(sender, showID, showName):
     
     cleanSlate = ResetGlobalQualityLists()
     
-    dir = MediaContainer(ViewGroup='InfoList', title2='Edit '+showName, noCache=True)
+    dir = MediaContainer(viewGroup='InfoList', title2='Edit '+showName, noCache=True)
     
     dir.Append(Function(PopupDirectoryItem(RescanFiles, 'Re-Scan Files', subtitle='Series: '+ showName,
         thumb=R(ICON)), showID=showID))
@@ -993,7 +996,7 @@ def ChangeSeriesQuality(sender, showID, showName, qualityPreset):
 def CustomQualitiesMenu(sender, showID, showName):
     '''allow selection of user defined quality settings'''
     
-    dir = MediaContainer(ViewGroup='InfoList', title2='Custom Quality for: '+showName)
+    dir = MediaContainer(viewGroup='InfoList', title2='Custom Quality for: '+showName)
     
     dir.Append(Function(DirectoryItem(InitialQualityMenu, title='Initial Download Quality',
         summary="If I don't have the episode then tell SickBeard to download it in ONE of the selected qualities",
@@ -1012,7 +1015,7 @@ def CustomQualitiesMenu(sender, showID, showName):
 def InitialQualityMenu(sender, showID, showName):
     '''Tell SickBeard which quality/qualities to download as soon as they are available'''
     
-    dir = MediaContainer(ViewGroup='InfoList', title2='Intial Quality: ' + showName, noCache=True)
+    dir = MediaContainer(viewGroup='InfoList', title2='Intial Quality: ' + showName, noCache=True)
     
     seriesPrefs = GetSeriesPrefs(showID)
     anyQualities = seriesPrefs['anyQualities']
@@ -1071,7 +1074,7 @@ def ReplacementQualityMenu(sender, showID, showName):
     '''Tell SickBeard to which quality/qualities to download as replacements for lower intial
         quality downloads as they are available'''
         
-    dir = MediaContainer(ViewGroup='InfoList', title2='Replacement Quality: '+showName, noCache=True)
+    dir = MediaContainer(viewGroup='InfoList', title2='Replacement Quality: '+showName, noCache=True)
     
     seriesPrefs = GetSeriesPrefs(showID)
     bestQualities = seriesPrefs['bestQualities']
