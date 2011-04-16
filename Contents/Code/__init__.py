@@ -3,7 +3,7 @@ from base64 import b64encode
 
 ####################################################################################################
 
-APPLICATION_PREFIX = "/application/sickbeard"
+APPLICATION_PREFIX = "/applications/sickbeard"
 
 NAME = 'SickBeard'
 
