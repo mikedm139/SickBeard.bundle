@@ -50,26 +50,26 @@ def AuthHeader():
 def MainMenu():
     dir = MediaContainer(viewGroup="InfoList")
     
-    #global TV_SECTION
-    #TV_SECTION = Dict['TvSectionID']
-    #Log('Loading TV sectionID: ' + Dict['TvSectionID'])
-
-    dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
-            summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
-    dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
-            summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
-    if Prefs['archiveDelete']:
-        dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
-            subtitle='Mark episodes as "Archived" in SickBeard and remove file',
-            summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
-            ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
-            ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
-            ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
-    dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
-            summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
-    dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
-    dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
-        summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
+    if Dict['TvSectionID'] == None:
+        dir.Append(PrefsItem(title="Preference",subtitle="SickBeard plugin prefs",
+        summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app and the Plex Media Server TV section",thumb=R(PREFS_ICON)))
+    else:
+        dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
+                summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
+        dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
+                summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
+        if Prefs['archiveDelete']:
+            dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
+                subtitle='Mark episodes as "Archived" in SickBeard and remove file',
+                summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
+                ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
+                ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
+                ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
+        dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
+                summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
+        dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
+        dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
+            summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
     
     updateValues = CheckForUpdate()
@@ -483,26 +483,27 @@ def GetTvSectionID():
     '''Determine what section(s) are TV series in Plex library'''
     
     dir = MediaContainer(title2='Choose TV section', noCache=True)
-    library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections', cacheTime=0)
-    showSections = []
-    for section in library.xpath('//directory'):
-        if section.get('type') == 'show':
-            showSections.append({'title':section.get('title'), 'key':section.get('key')})
+    try:
+        library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections', cacheTime=0)
+        showSections = []
+        for section in library.xpath('//directory'):
+            if section.get('type') == 'show':
+                showSections.append({'title':section.get('title'), 'key':section.get('key')})
     
-    if len(showSections) > 1:
-        #Log('There are %d sections which contain "shows"' % len(showSections))
-        for section in showSections:
-            dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
-        return dir
-    elif len(showSections) == 1:
-        #Log('There is 1 section which contains shows.')
-        Dict['TvSectionID'] = showSections[0]['key']
-        #Log('TV sectionID saved.')
+        if len(showSections) > 1:
+            #Log('There are %d sections which contain "shows"' % len(showSections))
+            for section in showSections:
+                dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
+            return dir
+        elif len(showSections) == 1:
+            #Log('There is 1 section which contains shows.')
+            Dict['TvSectionID'] = showSections[0]['key']
+            #Log('TV sectionID saved.')
+            return MainMenu()
+        else:
+            return MessageContainer(NAME, L('Could not identify a section of TV episodes.'))
+    except:
         return MainMenu()
-    else:
-        return MessageContainer(NAME, L('Could not identify a section of TV episodes.'))
-
-    return MainMenu()
     
 ####################################################################################################
 
@@ -1320,8 +1321,8 @@ def AddToList(sender, value, list):
 def CheckForUpdate():
     '''check if sickbeard can be updated'''
     url = Get_SB_URL() + '/home'
-    page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
     try:
+        page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
         updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
         link = updateCheck.get('href')
         #Log('Update available: '+link)
