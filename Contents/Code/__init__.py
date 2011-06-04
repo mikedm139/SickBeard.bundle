@@ -94,7 +94,7 @@ def ComingEpisodes(sender):
             airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
             timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text
             epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text
-            updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
+            updateUrl   = episode.xpath('.//a[@class="epSearch forceUpdate"]')[0].get('href')
             #Log(updateUrl)
         except: # Based on Whymse's changes for results Down Under
             showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
