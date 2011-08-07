@@ -1,4 +1,4 @@
-import re, os, subprocess
+import re, os, subprocess, string
 from base64 import b64encode
 
 ####################################################################################################
@@ -628,9 +628,11 @@ def EpisodeList(sender, showID, showName, seasonInt):
                     #Log('Title: ' + epTitle)
                     epDate = episode.xpath('./td')[5].text
                     #Log('AirDate: ' + epDate)
-                    epFile = str(episode.xpath('./td')[6].text)[2:-8]
+                    epFile = str(episode.xpath('./td')[6].text).strip(string.whitespace)
                     if epFile != '':
-                        if str(Prefs['tvDir'])[-1] == '/':
+                        if not Prefs['tvDir']:
+                            filePath = '%s/%s' % (showName, epFile)
+                        elif str(Prefs['tvDir'])[-1] == '/':
                             filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
                         else:
                             filePath = Prefs['tvDir']+'/%s/%s' % (showName, epFile)
