@@ -162,7 +162,7 @@ def ShowList(sender):
             if network == None:
                 network = "unknown"
             #Log('Network: '+network)
-            quality = str(show.xpath('td')[3].text)[2:]
+            quality = str(show.xpath('td')[3].text).strip(string.whitespace)
             #Log('Download quatlity: '+quality)
             episodes = str(show.xpath('td[5]/comment()')[0])[4:-3]
             #Log(episodes)
