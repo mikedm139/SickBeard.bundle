@@ -225,7 +225,7 @@ def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum="", fi
             showID=showID, seasonNum=seasonNum, episodeNum=episodeNum))
     if Prefs['archiveDelete']:
         if file != "":
-            dir.Append(Function(PopupDirectoryItem(ConfirmArchiveAndDelete, title='Archive and Delete this episode'),
+            dir.Append(Function(PopupDirectoryItem(ConfirmDelete, title='Archive and Delete this episode'),
                 tvdbID=showID, season=seasonNum, episode=episodeNum, file=file, archive=True))
     return dir
 
