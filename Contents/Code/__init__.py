@@ -1174,25 +1174,51 @@ def MarkSeasonWanted(sender, showID, seasonInt):
         elif episode.get('class') == None:
             pass
         elif seasonInt == 'all':
-            epNum = episode.xpath('.//a')[0].get('name')
+            params = episode.xpath('.//a')[0].get('href').split('&')
+            #Log(params)
+            epNum = -1
+            seasonNum = -1
+            for param in params:
+                #Log(param)
+                if param[:7] == 'episode':
+                    epNum = param.split('=')[1]
+                elif param[:6] == 'season':
+                    seasonNum = param.split('=')[1]
+            #epNum = episode.xpath('.//a')[0].get('name')
+            #Log('Episode: '+str(epNum))
+            #Log('Season: '+str(seasonNum))
             try:
-                result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3', errors='ignore').content
-                #Log('Episode: '+epNum+' marked as "Wanted"')
+                result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+epNum+'&status=3', errors='ignore', cacheTime=0, headers=AuthHeader()).content
+                Log('Episode: '+seasonNum+'x'+epNum+' marked as "Wanted"')
                 episodesMarked += 1
             except:
-                #Log('Failed: Unable to mark episode '+epNum+' as "Wanted"')
+                Log('Failed: Unable to mark episode '+seasonNum+'x'+epNum+' as "Wanted"')
                 pass
-        else:
+        elif len(episode.xpath('.//a')) > 0:
             # count all episode for the given season of the given series
-            epNum = episode.xpath('.//a')[0].get('name')
-            if str(epNum)[0:len(str(seasonInt))] == seasonInt:
+            params = episode.xpath('.//a')[0].get('href').split('&')
+            #Log(params)
+            epNum = -1
+            seasonNum = -1
+            for param in params:
+                #Log(param)
+                if param[:7] == 'episode':
+                    epNum = param.split('=')[1]
+                elif param[:6] == 'season':
+                    seasonNum = param.split('=')[1]
+            #epNum = episode.xpath('.//a')[0].get('name')
+            #Log('Episode: '+str(epNum))
+            #Log('Season: '+str(seasonNum))
+            if str(seasonNum)[0:len(str(seasonInt))] == seasonInt:
                 try:
-                    result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3', errors='ignore').content
-                    #Log('Episode: '+epNum+' marked as "Wanted"')
+                    result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+epNum+'&status=3', errors='ignore', cacheTime=0, headers=AuthHeader()).content
+                    Log('Episode: '+seasonNum+'x'+epNum+' marked as "Wanted"')
                     episodesMarked += 1
                 except:
-                    #Log('Failed: Unable to mark episode '+epNum+' as "Wanted"')
+                    Log('Failed: Unable to mark episode '+seasonNum+'x'+epNum+' as "Wanted"')
                     pass
+        else:
+            pass
     
     return MessageContainer('SickBeard Plugin', L(str(episodesMarked)+' marked as "Wanted"'))
 
