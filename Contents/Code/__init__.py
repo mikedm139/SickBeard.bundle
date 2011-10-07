@@ -89,21 +89,21 @@ def ComingEpisodes(sender):
     
     for episode in episodesPage.xpath('//div[@class="tvshowDiv"]'):
         try:
-            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
+            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text.strip()
             #Log('Found: '+ showName)
-            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
-            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text
-            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text
+            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text.strip()
+            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text.strip()
+            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text.strip()
             updateUrl   = episode.xpath('.//a[@class="epSearch forceUpdate"]')[0].get('href')
             #Log(updateUrl)
         except: # Based on Whymse's changes for results Down Under
-            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text[:-14]
+            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text.strip()
             #Log('Found: '+ showName)
-            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text
+            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text.strip()
             #Log('airsNext: ' + airsNext)
-            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text
+            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text.strip()
             #Log('timeSlot: ' + timeSlot)
-            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text
+            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text.strip()
             updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
         dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
             summary="Next episode: %s\nSummary: %s" % (airsNext, epSummary), thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
