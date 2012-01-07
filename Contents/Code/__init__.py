@@ -580,11 +580,11 @@ def EpisodeList(sender, showID, showName, seasonInt):
             # display all episodes for the series
             epNum = episode.xpath('.//a')[0].get('name')
             #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
-            epTitle = str(episode.xpath('./td')[4].text)[10:-10]
+            epTitle = episode.xpath('./td')[4].text.strip()
             #Log('Title: ' + epTitle)
             epDate = episode.xpath('./td')[5].text
             #Log('AirDate: ' + epDate)
-            epFile = str(episode.xpath('./td')[6].text)[2:-8]
+            epFile = episode.xpath('./td')[6].text.strip()
             if epFile != '':
                 if str(Prefs['tvDir'])[-1] == '/':
                     filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
@@ -624,11 +624,11 @@ def EpisodeList(sender, showID, showName, seasonInt):
                 if str(epNum)[0:len(str(seasonInt))] == seasonInt:
                     epNum = str(epNum)[(len(str(seasonInt))+1):]
                     #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
-                    epTitle = str(episode.xpath('./td')[4].text)[10:-10]
+                    epTitle = episode.xpath('./td')[4].text.strip()
                     #Log('Title: ' + epTitle)
                     epDate = episode.xpath('./td')[5].text
                     #Log('AirDate: ' + epDate)
-                    epFile = str(episode.xpath('./td')[6].text).strip(string.whitespace)
+                    epFile = episode.xpath('./td')[6].text.strip()
                     if epFile != '':
                         if not Prefs['tvDir']:
                             filePath = '%s/%s' % (showName, epFile)
