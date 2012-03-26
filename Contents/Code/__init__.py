@@ -11,7 +11,6 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
-#TV_SECTION  = ''
 
 ####################################################################################################
 
@@ -1364,3 +1363,7 @@ def UpdateSB(sender, link):
     return MessageContainer(NAME, L('SickBeard update started.'))
     
 ####################################################################################################
+
+def API_URL():
+    '''build and return the base url for all SickBeard API requests'''
+    return 'http://%s:%s/api/%s/?cmd=' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
