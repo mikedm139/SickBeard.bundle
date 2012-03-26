@@ -1367,3 +1367,25 @@ def UpdateSB(sender, link):
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
     return 'http://%s:%s/api/%s/?cmd=' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
+    
+####################################################################################################
+
+def Get_API_Key():
+    '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
+    ###TODO###
+    return
+
+####################################################################################################
+
+def API_Request(params=[]):
+    '''use the given args to make an API request and return the JSON'''
+    
+    '''start with the base API url'''
+    request_url = API_URL
+    '''build the request rl with the given parameters'''
+    for i in len(params):
+        request_url = request_url + params[i-1]['key'] + '=' + params[i-1]['value'] + '&'
+    '''strip the trailing "&" from the request_url'''
+    request_url = request_url.strip('&')
+    '''send the request and return the result'''
+    return JSON.ObjectFromURL(request_url)
