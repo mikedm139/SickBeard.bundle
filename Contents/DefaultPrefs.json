@@ -42,11 +42,5 @@
         "type": "enum",
         "values": ["en", "cs", "da", "de", "el", "es", "fi", "fr", "he", "hr", "hu", "it", "ja", "ko", "nl", "no", "pl", "pt", "ru", "sl", "sv", "tr", "zh"],
         "default": "en"
-    },
-    {
-        "id": "archiveDelete",
-        "label": "Allow for deleting recently viewed episodes.",
-        "type": "bool",
-        "default": "false" 
     }
 ]

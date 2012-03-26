@@ -58,13 +58,6 @@ def MainMenu():
                 summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
         dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
                 summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
-        if Prefs['archiveDelete']:
-            dir.Append(Function(DirectoryItem(RecentlyViewedMenu, title='Archive/Delete Recently Viewed',
-                subtitle='Mark episodes as "Archived" in SickBeard and remove file',
-                summary='Use with EXTREME CAUTION!!! \n  This will allow you to DELETE FILES from your hard drive.'+
-                ' By using this function, you agree that you will not hold responsible the author of this plugin,'+
-                ' the developers of Plex, or anyone other than yourself for the deletion of files. This is provided'+
-                ' free of charge with NO WARRANTY written, implied, or otherwise. \nCONSIDER YOURSELF WARNED.')))
         dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
                 summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
         dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
@@ -1371,65 +1364,3 @@ def UpdateSB(sender, link):
     return MessageContainer(NAME, L('SickBeard update started.'))
     
 ####################################################################################################
-
-def RecentlyViewedMenu(sender):
-    '''retrieve list of recently viewed episodes and allow option to tell Sickbeard to mark them as
-    archived and then delete the files (on an individual basis)'''
-    dir = MediaContainer(viewGroup='InfoList', title2='Archive/Delete', noCache=True)
-    
-    recentlyViewedUrl = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/recentlyViewed'
-    recentlyViewed = XML.ElementFromURL(recentlyViewedUrl, cacheTime=0)
-        
-    for episode in recentlyViewed.xpath('//Video'):
-        showName = episode.get('grandparentTitle')
-        #Log(showName)
-        episodeTitle = episode.get('title')
-        #Log(episodeTitle)
-        epSummary = episode.get('summary')
-        #Log(epSummary)
-        seasonNumber = episode.get('parentIndex')
-        #Log('Season:'+seasonNumber)
-        episodeNumber = episode.get('index')
-        #Log('Episode:'+episodeNumber)
-        file = episode.xpath('.//Part')[0].get('file')
-        #Log(file)
-        thumbUrl = episode.get('thumb')
-        try:
-            viewCount = int(episode.get('viewCount'))
-        except:
-            viewCount = 0
-        #Log('viewCount:'+str(viewCount))
-        if viewCount >= 1:
-            dir.Append(Function(PopupDirectoryItem(ConfirmDelete, title=showName+': S'+seasonNumber+'E'+episodeNumber,
-                subtitle=episodeTitle, summary = epSummary,thumb=Function(GetEpisodeThumb, link=thumbUrl)), file=file))
-        else:
-            continue
-    
-    return dir
-
-####################################################################################################
-
-def GetEpisodeThumb(link):
-    try:
-        data = HTTP.Request(Get_PMS_URL() + link, cacheTime=CACHE_1MONTH).content
-        return DataObject(data, 'image/jpeg')
-    except:
-        return Redirect(R(ICON))
-
-####################################################################################################
-
-def ConfirmDelete(sender, file):
-
-    dir = MediaContainer(title2='Delete?')
-    dir.Append(Function(DirectoryItem(DeleteEpisode, title='Delete this episode?'), file=file))
-    return dir
-
-####################################################################################################
-
-def DeleteEpisode(sender, file):
-    
-    ### delete the given episode ###
-    os.remove(file)
-    
-    return MessageContainer(NAME, L('Episode deleted from system.'+
-        ' Changes will be reflected after the next Library Update.'))
