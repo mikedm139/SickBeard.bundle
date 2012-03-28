@@ -48,30 +48,26 @@ def AuthHeader():
 ####################################################################################################
 
 def MainMenu():
-    dir = MediaContainer(viewGroup="InfoList")
+    oc = ObjectContainer(view_group="InfoList")
     
-    if Dict['TvSectionID'] == None:
-        dir.Append(PrefsItem(title="Preference",subtitle="SickBeard plugin prefs",
-        summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app and the Plex Media Server TV section",thumb=R(PREFS_ICON)))
-    else:
-        dir.Append(Function(DirectoryItem(ComingEpisodes,"Coming Episodes","Soon to be aired",
-                summary="See which shows that you follow have episodes airing soon",thumb=R(ICON),art=R(ART))))
-        dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
-                summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
-        dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
-                summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
-        dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
-        dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
-            summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
+    oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
+        summary="See which shows that you follow have episodes airing soon"))
+    #dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
+    #    summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
+    #dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
+    #    summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
+    #dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
+    #dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
+    #    summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
     
-    updateValues = CheckForUpdate()
-    if updateValues['available']:
-        dir.Append(Function(PopupDirectoryItem(UpdateSB, 'SickBeard Update Available',
-            'May require you to restart SickBeard', 'Depending on your set-up, you may need to restart' +
-            ' SickBeard after updating.', thumb=R(ICON)), link = updateValues['link']))
+    #updateValues = CheckForUpdate()
+    #if updateValues['available']:
+    #    dir.Append(Function(PopupDirectoryItem(UpdateSB, 'SickBeard Update Available',
+    #        'May require you to restart SickBeard', 'Depending on your set-up, you may need to restart' +
+    #        ' SickBeard after updating.', thumb=R(ICON)), link = updateValues['link']))
 
-    return dir
+    return oc
 
 ####################################################################################################
 
