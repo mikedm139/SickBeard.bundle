@@ -74,33 +74,34 @@ def MainMenu():
 
 ####################################################################################################
 
-def ComingEpisodes(sender):
-    dir = MediaContainer(viewGroup='InfoList', title2='Coming Episodes', noCache=True)
-    url = Get_SB_URL() + '/comingEpisodes?layout=banner'
-    episodesPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
+def Future():
+    oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
+    TIMEFRAMES = ["missed","today","soon","later"]
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
+        summary="Episodes which aired prior to today's date.")
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="today"), title="Airing Today",
+        summary="Episodes which are scheduled to air today.")
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="soon"), title="Airing Soon",
+        summary="Episodes which are scheduled to air this week.")
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="later"), title="Airing Later",
+        summary="Episodes which are scheduled to air after this week.")
     
-    for episode in episodesPage.xpath('//div[@class="tvshowDiv"]'):
-        try:
-            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text.strip()
-            #Log('Found: '+ showName)
-            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text.strip()
-            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text.strip()
-            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text.strip()
-            updateUrl   = episode.xpath('.//a[@class="epSearch forceUpdate"]')[0].get('href')
-            #Log(updateUrl)
-        except: # Based on Whymse's changes for results Down Under
-            showName    = episode.xpath('.//span[@class="tvshowTitle"]/a')[0].text.strip()
-            #Log('Found: '+ showName)
-            airsNext    = episode.xpath('.//td[@class="next_episode"]/span')[1].text.strip()
-            #Log('airsNext: ' + airsNext)
-            timeSlot    = episode.xpath('.//tr[4]/td/span')[1].text.strip()
-            #Log('timeSlot: ' + timeSlot)
-            epSummary   = episode.xpath('.//div[@class="ep_summary"]')[0].text.strip()
-            updateUrl   = episode.xpath('.//a[@class="forceUpdate"]')[0].get('href')
-        dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu,title=showName,subtitle="Airs: "+timeSlot,
-            summary="Next episode: %s\nSummary: %s" % (airsNext, epSummary), thumb=Function(GetSeriesThumb, showName=showName)),url=updateUrl))
+    return oc
+        
+####################################################################################################
+
+def ComingEpisodes(timeframe=""):
+    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), noCache=True)
     
-    return dir
+    coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])
+    
+    for episode in coming_Eps['data'][timeframe]:
+        title = EpisodeTitle(episode)
+        summary = EpisodeSummary(episode)
+        oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
+            title=title, summary=summary, thumb=Callback(GetThumb, tvdbID=episode['tvdbid']))) 
+       
+    return oc
 
 ####################################################################################################
 
@@ -203,7 +204,7 @@ def SeriesSelectMenu(sender, showID, showName):
     return dir
     
 ####################################################################################################
-
+### def EpisodePopup(episode={}):
 def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum="", file=""):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     dir = MediaContainer(title='')
@@ -1366,7 +1367,7 @@ def UpdateSB(sender, link):
 
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
-    return 'http://%s:%s/api/%s/?cmd=' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
+    return 'http://%s:%s/api/%s/?' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
     
 ####################################################################################################
 
@@ -1389,3 +1390,30 @@ def API_Request(params=[]):
     request_url = request_url.strip('&')
     '''send the request and return the result'''
     return JSON.ObjectFromURL(request_url)
+    
+####################################################################################################
+
+def EpisodeTitle(episode={}):
+    '''build a string for the episode's title using the show name, season #, episode #, and episode title'''
+    episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['ep_name'])
+    return episode_title
+    
+####################################################################################################
+
+def EpisodeSummary(episode={}):
+    '''build a string for the episode's summary using the episode's airdate, airs, network, paused(if true), quality, show_status,
+        and ep_plot'''
+    if episode['paused']:
+        paused = 'Paused: True\n'
+    else:
+        paused = ''
+    episode_summary = "Episode Airdate: %s\nTimeslot: %s\nNetwork: %s\nQuality: %s\nStatus: %s\n%s\nSynopsis: %s" % (
+        episode['airdate'], episode['airs'], episode['network'], episode['quality'], episode['show_status'], paused, episode['ep_plot'])
+    return episode_summary
+    
+####################################################################################################
+
+def GetThumb(tvdbID):
+    thumb_url = API_URL + "cmd=show.getposter&tvdbid=%s" % tvdbID
+    data = HTTP.Request(thumb_url).content
+    return DataObject(data, 'image/jpeg')
