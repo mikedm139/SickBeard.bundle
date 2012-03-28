@@ -54,8 +54,8 @@ def MainMenu():
         summary="See which shows that you follow have episodes airing soon"))
     #dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
     #    summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
-    #dir.Append(Function(InputDirectoryItem(SearchResults,"Add Show","Add new show to SickBeard",
-    #    summary="Search by name to add a new show to SickBeard's watch list",thumb=R(SEARCH_ICON),art=R(ART))))
+    oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
+        prompt="Search TVDB for..." thumb=R(ICON)
     #dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
     #dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
     #    summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
@@ -102,24 +102,19 @@ def ComingEpisodes(timeframe=""):
 
 ####################################################################################################
 
-def SearchResults(sender,query):
-    dir = MediaContainer(viewGroup="InfoList",title2="Search Results")
-
-    url = Get_SB_URL() + '/home/addShows/searchTVDBForShowName?name=' + String.Quote(query, usePlus=True)
+def Search(query):
+    oc = ObjectContainer(view_group="InfoList", title2="TVDB Results")
     
-    tvdbResult = JSON.ObjectFromURL(url, headers=AuthHeader()).get("results")
+    search_results = = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
     
-    for item in tvdbResult:
-        tvdbID = item[0]
-        showName = item[1]
-        startDate = item[2]
-        if startDate == None:
-            startDate = "Unknown"
-        #Log("Found: " +showName)
-        dir.Append(Function(PopupDirectoryItem(AddShowMenu,title=showName,subtitle="TVDB: "+str(tvdbID),
-            summary="First aired: "+startDate),name=showName,ID=tvdbID))
+    for result in search_results['data']['results']:
+        oc.add(PopupDirectoryObject(
+            key=Callback(AddShowMenu, show=result),
+            title = result['name'],
+            summary = "TVDB ID: %s\nFirst Aired: %s" % (result['tvdbid'], result['first_aired'])
+            thumb = Callback(GetThumb, tvdbID=result['tvdbid'])))
     
-    return dir
+    return oc
     
 ####################################################################################################  
 
