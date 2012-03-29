@@ -15,10 +15,8 @@ PREFS_ICON  = 'icon-prefs.png'
 ####################################################################################################
 
 def Start():
-    if Dict['TvSectionID'] == None:
-        Plugin.AddPrefixHandler(APPLICATION_PREFIX, GetTvSectionID, L('SickBeard'), ICON, ART)
-    else:
-        Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
+    
+    Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     if Dict['DefaultSettings'] == None:
         Dict['DefaultSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '3',  'seasonFolders' : 'on', 'anyQualities' : 'HD', 'skipShow' : ''}
