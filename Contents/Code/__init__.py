@@ -406,23 +406,6 @@ def GetSeriesThumb(showName):
 
 ####################################################################################################
 
-def GetSeasonThumb(showName, seasonInt):
-    '''retrieve the season thumbnail image from the Plex metadata database based on the title of the series'''
-    seasonString = "season " + seasonInt
-    #Log("Getting thumb for " + seasonString)
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
-    tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
-    try:
-        seasonListUrl = Get_PMS_URL() + tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('key')
-        seasonListPage = HTML.ElementFromURL(seasonListUrl, errors='ignore')
-        seasonThumb = seasonListPage.xpath('//directory[@index='+seasonInt+']')[0].get('thumb')
-        data = HTTP.Request(Get_PMS_URL() + seasonThumb, cacheTime=CACHE_1MONTH).content
-        return DataObject(data, 'image/jpeg')
-    except:
-        GetSeriesThumb(showName)
-
-####################################################################################################
-
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
