@@ -144,9 +144,9 @@ def ShowList():
     
 ####################################################################################################    
 def SeriesPopup(tvdbid):
-def SeriesSelectMenu(sender, showID, showName):
     '''display a popup menu with the option to force a search for the selected series'''
-    dir = MediaContainer(title='')
+    oc = ObjectContainer()
+    
     dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
         showName=showName))
     dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
@@ -455,20 +455,6 @@ def ForceTvSection(sender, sectionID):
     Dict['TvSectionID'] = sectionID
     #Log('TV sectionID saved.')
     return MainMenu()
-
-####################################################################################################
-
-def GetSummary(showName):
-    '''retrieve the series summary from the Plex metadata database based on the title of the series'''
-
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
-    tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore', cacheTime=CACHE_1MONTH)
-    try:
-        summary = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('summary')
-    except:
-        summary = "Not found."
-    
-    return summary
 
 ####################################################################################################
 
