@@ -52,8 +52,8 @@ def MainMenu():
     
     oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
         summary="See which shows that you follow have episodes airing soon"))
-    #dir.Append(Function(DirectoryItem(ShowList,"All Shows","SickBeard List",
-    #    summary="See details about all shows which SickBeard manages for you",thumb=R(ICON),art=R(ART))))
+    oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
+        summary="See details about all shows which SickBeard manages for you"))
     oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
         prompt="Search TVDB for..." thumb=R(ICON)
     #dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
@@ -132,7 +132,7 @@ def ShowList():
             paused = "True"
         else:
             paused = "False"
-            
+        ###TODO(?) Re-add episode counts?###
         title = show['show_name']
         summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
@@ -149,13 +149,8 @@ def SeriesSelectMenu(sender, showID, showName):
     dir = MediaContainer(title='')
     dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
         showName=showName))
-    
-    if Client.Platform == ClientPlatform.iOS:
-        dir.Append(Function(PopupDirectoryItem(EditSeries, title="Edit SickBeard series options"),
-            showID=showID, showName=showName))
-    else:
-        dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
-            showID=showID, showName=showName))
+    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
+        showID=showID, showName=showName))
     
     return dir
     
