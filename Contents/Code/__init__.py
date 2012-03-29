@@ -140,17 +140,16 @@ def ShowList():
         
     return oc
     
-####################################################################################################    
+####################################################################################################
+
 def SeriesPopup(tvdbid):
     '''display a popup menu with the option to force a search for the selected series'''
     oc = ObjectContainer()
     
-    dir.Append(Function(DirectoryItem(SeasonList, title="View Season List"), showID=showID,
-        showName=showName))
-    dir.Append(Function(DirectoryItem(EditSeries, title="Edit SickBeard series options"),
-        showID=showID, showName=showName))
+    oc.add(DirectoryObject(key=Callback(SeasonList, tvdbid=tvdbid), title="View Season List"))
+    oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid), title="Edit SickBeard series options"))
     
-    return dir
+    return oc
     
 ####################################################################################################
 ### def EpisodePopup(episode={}):
