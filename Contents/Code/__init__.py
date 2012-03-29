@@ -451,13 +451,6 @@ def GetTvSectionID():
     
 ####################################################################################################
 
-def ForceTvSection(sender, sectionID):
-    Dict['TvSectionID'] = sectionID
-    #Log('TV sectionID saved.')
-    return MainMenu()
-
-####################################################################################################
-
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
