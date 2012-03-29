@@ -423,34 +423,6 @@ def GetSeasonThumb(showName, seasonInt):
 
 ####################################################################################################
 
-def GetTvSectionID():
-    '''Determine what section(s) are TV series in Plex library'''
-    
-    dir = MediaContainer(title2='Choose TV section', noCache=True)
-    try:
-        library = HTML.ElementFromURL(Get_PMS_URL()+'/library/sections', cacheTime=0)
-        showSections = []
-        for section in library.xpath('//directory'):
-            if section.get('type') == 'show':
-                showSections.append({'title':section.get('title'), 'key':section.get('key')})
-    
-        if len(showSections) > 1:
-            #Log('There are %d sections which contain "shows"' % len(showSections))
-            for section in showSections:
-                dir.Append(Function(DirectoryItem(ForceTvSection, title=section['title']), sectionID=section['key']))
-            return dir
-        elif len(showSections) == 1:
-            #Log('There is 1 section which contains shows.')
-            Dict['TvSectionID'] = showSections[0]['key']
-            #Log('TV sectionID saved.')
-            return MainMenu()
-        else:
-            return MessageContainer(NAME, L('Could not identify a section of TV episodes.'))
-    except:
-        return MainMenu()
-    
-####################################################################################################
-
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
