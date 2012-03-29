@@ -391,21 +391,6 @@ def ChangeSetting(sender, setting, value, group):
 
 ####################################################################################################
 
-
-def GetSeriesThumb(showName):
-    '''retrieve the thumbnail image from the Plex metadata database based on the title of the series'''
-
-    tv_section_url = Get_PMS_URL() + '/library/sections/' + Dict['TvSectionID'] + '/all'
-    tvLibrary = HTML.ElementFromURL(tv_section_url, errors='ignore')
-    try:
-        seriesThumb = tvLibrary.xpath('//directory[@title="'+showName+'"]')[0].get('thumb')
-        data = HTTP.Request(Get_PMS_URL() + seriesThumb, cacheTime=CACHE_1MONTH).content
-        return DataObject(data, 'image/jpeg')
-    except:
-        return Redirect(R(ICON))
-
-####################################################################################################
-
 def SeasonList(sender, showID, showName):
     '''Display a list of all season of the given TV series in SickBeard'''
     seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
