@@ -118,68 +118,32 @@ def Search(query):
     
 ####################################################################################################  
 
-def ShowList(sender):
+def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
-    dir = MediaContainer(viewGroup="InfoList", title2="All Shows")
-    url = Get_SB_URL() + '/home/'
-    showsPage = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
-    for show in showsPage.xpath('//table[@id="showListTable"]/tbody/tr'):
-            #Log(show.get('class'))
-        #try:
-            next    = show.xpath('./td')[0].text
-            if next == None:
-                next = "unknown"
-            #Log('Next airs: '+next)
-            name    = show.xpath('./td[2]//text()')[0]
-            #Log(name)
-            try:
-                link  = show.xpath('./td[2]/a')[0].get('href')
-            except:
-                dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel='???',
-                    subtitle='Episodes: ???', summary='Unable to find showID for this series in SickBeard. Please' +
-                    'check the web interface to confirm that this series was properly added. No functions will work for' + 
-                    'this series at this time.', thumb=Function(GetSeriesThumb, showName=name)),showID=None, showName=None))
-                pass
-            #Log(link)
-            showID = re.findall('=(\d+)$', link)[0]
-            #Log(showID)
-            network = show.xpath('td')[2].text
-            if network == None:
-                network = "unknown"
-            #Log('Network: '+network)
-            quality = str(show.xpath('td')[3].text).strip(string.whitespace)
-            #Log('Download quatlity: '+quality)
-            episodes = str(show.xpath('td[5]/comment()')[0])[4:-3]
-            #Log(episodes)
-            status  = show.xpath('td')[6].text
-            if status == None:
-                status = "Not Available"
-            #Log("Status: "+status)
-            showSummary = GetSummary(name)
-            if showSummary == None:
-                showSummary = "Not available"
-            if status == "Continuing":
-                info    = ('Next Episode: ' + str(next) + '\n' +
-                        'Airs on: ' + network + '\n' +
-                        'Status: ' + status + '\n' +
-                        'Download quality: ' + quality + '\n' +
-                        'Summary: ' + showSummary)
-            else:
-                info    = ('Aired on: ' + network + '\n' +
-                        'Status: ' + status + '\n' +
-                        'Download quality: ' + quality + '\n' +
-                        'Summary: ' + showSummary)
+    oc = ObjectContainer(view_group="InfoList", title2="All Shows")
     
-            updateUrl = '/home/updateShow?show=' + showID +'&force=1'
-            dir.Append(Function(PopupDirectoryItem(SeriesSelectMenu, title=name, infoLabel=episodes,
-                subtitle='Episodes: '+episodes, summary=info, thumb=Function(GetSeriesThumb, showName=name)),
-                showID=showID, showName=name))
-        #except:
-        #    continue
-    return dir
+    shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
+    
+    for (key, value) in shows.items():
+        tvdbid = key
+        show = value
+        
+        if show['paused']:
+            paused = "True"
+        else:
+            paused = "False"
+            
+        title = show['show_name']
+        summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
+            show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
+            
+        oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid), title=title, summary=summary,
+            thumb=Callback(GetThumb, tvdbID=episode['tvdbid'])))
+        
+    return oc
     
 ####################################################################################################    
-
+def SeriesPopup(tvdbid):
 def SeriesSelectMenu(sender, showID, showName):
     '''display a popup menu with the option to force a search for the selected series'''
     dir = MediaContainer(title='')
@@ -1380,8 +1344,12 @@ def API_Request(params=[]):
         request_url = request_url + params[i-1]['key'] + '=' + params[i-1]['value'] + '&'
     '''strip the trailing "&" from the request_url'''
     request_url = request_url.strip('&')
-    '''send the request and return the result'''
-    return JSON.ObjectFromURL(request_url)
+    '''send the request and confirm success'''
+    data = JSON.ObjectFromURL(request_url)
+    if data['result'] == "success":
+        return data
+    else:
+        return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     
 ####################################################################################################
 
