@@ -164,14 +164,15 @@ def EpisodePopup(episode={}):
 
 ####################################################################################################
 
-def AddShowMenu(sender, name, ID):
+def AddShowMenu(show={}):
+    '''offer the option to add the given show to sickbeard with default settings or with custom settings'''
     
-    dir = MediaContainer()
+    oc = ObjectContainer()
     
-    dir.Append(Function(DirectoryItem(AddShow, "Add with default settings"), name=name, ID=ID, settings='default'))
-    dir.Append(Function(DirectoryItem(CustomAddShow, "Add with custom settings"), name=name, ID=ID))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=result['tvdbid']), title="Add with default settings")
+    oc.add(DirectoryObjecy(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
     
-    return dir
+    return oc
     
 ####################################################################################################
 
@@ -199,7 +200,8 @@ def DefaultSettingsMenu(sender):
     return dir
     
 ####################################################################################################
-
+###def AddShow(tvdbID, settings=[]):
+###'''add the given show with the given settings, or SickBeard's default settings if settings == []'''
 def AddShow(sender, name, ID, settings):
     '''Tell SickBeard to add the given show to the watched/wanted list'''
     dir = MessageContainer("SickBeard", L('Show added to list'))
