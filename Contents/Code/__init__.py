@@ -54,7 +54,6 @@ def MainMenu():
         summary="See details about all shows which SickBeard manages for you"))
     oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
         prompt="Search TVDB for..." thumb=R(ICON)
-    #dir.Append(Function(DirectoryItem(DefaultSettingsMenu, title="Default Settings", subtitle="Set/Change default settings for new shows")))
     #dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
     #    summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
@@ -173,31 +172,6 @@ def AddShowMenu(show={}):
     oc.add(DirectoryObjecy(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
     
     return oc
-    
-####################################################################################################
-
-def DefaultSettingsMenu(sender):
-    
-    dir = MediaContainer(noCache=True)
-    
-    #Log(Dict['DefaultSettings']['defaultStatus'])
-    if Dict['DefaultSettings']['defaultStatus'] == '3':
-        statusLabel = "Wanted"
-    elif Dict['DefaultSettings']['defaultStatus'] == '5':
-        statusLabel = "Skipped"
-    elif Dict['DefaultSettings']['defaultStatus'] == '6':
-        statusLabel = "Archived"
-    elif Dict['DefaultSettings']['defaultStatus'] == '7':
-        statusLabel = "Ignored"
-    else:
-        statusLabel = ""
-    
-    dir.Append(Function(PopupDirectoryItem(SetLanguage, "TVDB Language", infoLabel=Dict['DefaultSettings']['tvdbLang']), group="Default"))
-    dir.Append(Function(PopupDirectoryItem(SetStatus, "Status of previous episodes", infoLabel=statusLabel), group="Default"))
-    dir.Append(Function(PopupDirectoryItem(SetSeasonFolders, "Use season Folders", infoLabel=Dict['DefaultSettings']['seasonFolders']), group="Default"))
-    dir.Append(Function(PopupDirectoryItem(SetQuality, "Download quality", infoLabel=Dict['DefaultSettings']['anyQualities']), group="Default"))
-    
-    return dir
     
 ####################################################################################################
 ###def AddShow(tvdbID, settings=[]):
