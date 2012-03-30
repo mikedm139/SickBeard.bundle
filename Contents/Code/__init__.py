@@ -152,23 +152,15 @@ def SeriesPopup(tvdbid):
     return oc
     
 ####################################################################################################
-### def EpisodePopup(episode={}):
-def EpisodeSelectMenu(sender, url="", showID="", seasonNum="", episodeNum="", file=""):
+
+def EpisodePopup(episode={}):
     '''display a popup menu with the option to force a search for the selected episode/series'''
-    dir = MediaContainer(title='')
-    if url != "":
-        dir.Append(Function(PopupDirectoryItem(EpisodeRefresh, title="Force search for this episode"),
-            url=url))
-    else:
-        dir.Append(Function(PopupDirectoryItem(EpisodeRefresh, title="Force search for this episode"),
-            showID=showID, seasonNum=seasonNum, episodeNum=episodeNum))
-        dir.Append(Function(PopupDirectoryItem(MarkEpisodeWanted, title="Mark this episode as wanted"),
-            showID=showID, seasonNum=seasonNum, episodeNum=episodeNum))
-    if Prefs['archiveDelete']:
-        if file != "":
-            dir.Append(Function(PopupDirectoryItem(ConfirmDelete, title='Archive and Delete this episode'),
-                tvdbID=showID, season=seasonNum, episode=episodeNum, file=file, archive=True))
-    return dir
+    oc = ObjectContainer()
+    
+    oc.add(DirectoryObject(key=Callback(EpisodeRefresh, episode=episode), title="Force search for this episode"))
+    oc.add(DirectoryObject(key=Callback(EpisodeSetStatus, episode=episode),  title="Mark this episode as wanted"))
+    
+    return oc
 
 ####################################################################################################
 
@@ -1005,7 +997,8 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
         return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
 
 ####################################################################################################
-
+###def EpisodeSetStatus(episode={})
+###'''Present a menu with options to change the wanted/skipped/archived/ignored status of the given episode'''
 def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
     '''tell SickBeard to do mark the given episode as "wanted"'''
     
