@@ -174,104 +174,18 @@ def AddShowMenu(show={}):
     return oc
     
 ####################################################################################################
-###def AddShow(tvdbID, settings=[]):
-###'''add the given show with the given settings, or SickBeard's default settings if settings == []'''
-def AddShow(sender, name, ID, settings):
-    '''Tell SickBeard to add the given show to the watched/wanted list'''
-    dir = MessageContainer("SickBeard", L('Show added to list'))
-    if str(Prefs['tvDir'])[-1] == '/':
-        Prefs['tvDir'] = str(Prefs['tvDir'])[:-2]
-        #Log(Prefs['tvDir'])
+
+def AddShow(tvdbID, settings=[]):
+    '''add the given show to the SickBeard database with the given settings,
+        or use SickBeard's default settings if settings == []'''
     
-    if settings == 'default':
-        if Dict['DefaultSettings']['anyQualities'] == 'SD':
-            postValues = {
-                'tvdbLang'      : Prefs['TVDBlang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
-                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
-                'anyQualities'  : '1',
-                'anyQualities'  : '2',
-                'skipShow'      : ''
-            }
-        elif Dict['DefaultSettings']['anyQualities'] == 'HD':
-            postValues = {
-                'tvdbLang'      : Prefs['TVDBlang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
-                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
-                'anyQualities'  : '4',
-                'anyQualities'  : '8',
-                'anyQualities'  : '16',
-                'skipShow'      : ''
-            }
-        else: #Dict['DefaultSettings']['anyQualities'] == 'Any':
-            postValues = {
-                'tvdbLang'      : Prefs['TVDBlang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['DefaultSettings']['defaultStatus'],
-                'seasonFolders' : Dict['DefaultSettings']['seasonFolders'],
-                'anyQualities'  : '1',
-                'anyQualities'  : '2',
-                'anyQualities'  : '4',
-                'anyQualities'  : '8',
-                'anyQualities'  : '16',
-                'anyQualities'  : '32768',
-                'skipShow'      : ''
-            }
+    params = [{"key":"cmd", "value":"show.addnew"}]
+    for param in settings[]:
+        params.append(param)
         
-    else: # setting = 'custom'
-        
-        if Dict['CustomSettings']['anyQualities'] == 'SD':
-            postValues = {
-                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
-                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
-                'anyQualities'  : '1',
-                'anyQualities'  : '2',
-                'skipShow'      : ''
-            }
-        elif Dict['CustomSettings']['anyQualities'] == 'HD':
-            postValues = {
-                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
-                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
-                'anyQualities'  : '4',
-                'anyQualities'  : '8',
-                'anyQualities'  : '16',
-                'skipShow'      : ''
-            }
-        else: #Dict['CustomSettings']['anyQualities'] == 'Any':
-            postValues = {
-                'tvdbLang'      : Dict['CustomSettings']['tvdbLang'],
-                'whichSeries'   : '%d|%s' % (ID, name),
-                'rootDir'       : String.Quote(Prefs['tvDir']),
-                'defaultStatus' : Dict['CustomSettings']['defaultStatus'],
-                'seasonFolders' : Dict['CustomSettings']['seasonFolders'],
-                'anyQualities'  : '1',
-                'anyQualities'  : '2',
-                'anyQualities'  : '4',
-                'anyQualities'  : '8',
-                'anyQualities'  : '16',
-                'anyQualities'  : '32768',
-                'skipShow'      : ''
-            }
-    
-    url = Get_SB_URL() + '/home/addShows/addNewShow'
-    #Log(postValues['showToAdd'])
-    SanitizeFileName = HTTP.Request(Get_SB_URL() + '/home/addShows/sanitizeFileName?name=' + String.Quote(name, usePlus=True), headers=AuthHeader()).content
-    redirect = HTTP.Request(url, postValues, headers=AuthHeader()).content
-    
-    #Log(str(result))
-    
-    return dir
+    message = API_Request(params)
+
+    return ObjectContainer(header=NAME, message=message)
     
 ####################################################################################################
 
