@@ -53,7 +53,7 @@ def MainMenu():
     oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
         summary="See details about all shows which SickBeard manages for you"))
     oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
-        prompt="Search TVDB for..." thumb=R(ICON)
+        prompt="Search TVDB for...", thumb=R(ICON)))
     #dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
     #    summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     
@@ -73,13 +73,13 @@ def Future():
     oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
     
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
-        summary="Episodes which aired prior to today's date.")
+        summary="Episodes which aired prior to today's date."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="today"), title="Airing Today",
-        summary="Episodes which are scheduled to air today.")
+        summary="Episodes which are scheduled to air today."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="soon"), title="Airing Soon",
-        summary="Episodes which are scheduled to air this week.")
+        summary="Episodes which are scheduled to air this week."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="later"), title="Airing Later",
-        summary="Episodes which are scheduled to air after this week.")
+        summary="Episodes which are scheduled to air after this week."))
     
     return oc
         
@@ -105,13 +105,13 @@ def Search(query):
     
     oc = ObjectContainer(view_group="InfoList", title2="TVDB Results", no_cache=True)
     
-    search_results = = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
+    search_results = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
     
     for result in search_results['data']['results']:
         oc.add(PopupDirectoryObject(
             key=Callback(AddShowMenu, show=result),
             title = result['name'],
-            summary = "TVDB ID: %s\nFirst Aired: %s" % (result['tvdbid'], result['first_aired'])
+            summary = "TVDB ID: %s\nFirst Aired: %s" % (result['tvdbid'], result['first_aired']),
             thumb = Callback(GetThumb, tvdbID=result['tvdbid'])))
     
     return oc
@@ -172,7 +172,7 @@ def AddShowMenu(show={}):
     
     oc = ObjectContainer()
     
-    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=result['tvdbid']), title="Add with default settings")
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=result['tvdbid']), title="Add with default settings"))
     oc.add(DirectoryObjecy(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
     
     return oc
@@ -184,7 +184,7 @@ def AddShow(tvdbID, settings=[]):
         or use SickBeard's default settings if settings == []'''
     
     params = [{"key":"cmd", "value":"show.addnew"}]
-    for param in settings[]:
+    for param in settings:
         params.append(param)
         
     message = API_Request(params)
