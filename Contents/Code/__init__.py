@@ -200,8 +200,7 @@ def CustomAddShow(sender, name, ID):
     oc = MediaContainer(no_cache=True)
     
     GetSickBeardDefaults()
-    
-    root_dirs = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])
+    GetSickBeardRootDirs()
     
     '''Set the default settings in the plugin Dict[] for easy reference and modification'''
     ###CARRY_ON FROM HERE###
@@ -236,6 +235,12 @@ def GetSickBeardDefaults():
         Dict['DefaultSettings'][key] = value    
     return
     
+####################################################################################################
+
+def GetSickBeardRootDirs():
+    Dict['RootDirs'] = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])['data']
+    return
+
 ####################################################################################################
 
 def SetLanguage(sender, group):
