@@ -69,8 +69,9 @@ def MainMenu():
 ####################################################################################################
 
 def Future():
+    
     oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
-    TIMEFRAMES = ["missed","today","soon","later"]
+    
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
         summary="Episodes which aired prior to today's date.")
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="today"), title="Airing Today",
@@ -85,7 +86,8 @@ def Future():
 ####################################################################################################
 
 def ComingEpisodes(timeframe=""):
-    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), noCache=True)
+    
+    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
     
     coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])
     
@@ -100,7 +102,8 @@ def ComingEpisodes(timeframe=""):
 ####################################################################################################
 
 def Search(query):
-    oc = ObjectContainer(view_group="InfoList", title2="TVDB Results")
+    
+    oc = ObjectContainer(view_group="InfoList", title2="TVDB Results", no_cache=True)
     
     search_results = = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
     
@@ -117,7 +120,8 @@ def Search(query):
 
 def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
-    oc = ObjectContainer(view_group="InfoList", title2="All Shows")
+    
+    oc = ObjectContainer(view_group="InfoList", title2="All Shows", no_cache=True)
     
     shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
     
@@ -190,10 +194,20 @@ def AddShow(tvdbID, settings=[]):
 ####################################################################################################
 
 def CustomAddShow(sender, name, ID):
-    '''Tell SickBeard to add the given show to the watched/wanted list'''
-    dir = MediaContainer(noCache=True)
+    '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
+        modifications before adding a show with custom settings'''
     
-    #Log(Dict['CustomSettings']['defaultStatus'])
+    oc = MediaContainer(no_cache=True)
+    
+    default_settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
+    root_dirs = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])
+    
+    '''Set the default settings in the plugin Dict[] for easy reference and modification'''
+    ###CARRY_ON FROM HERE###
+    
+    '''Offer separate menu options for each default setting'''
+    ###TODO###
+    
     if Dict['CustomSettings']['defaultStatus'] == '3':
         statusLabel = "Wanted"
     elif Dict['CustomSettings']['defaultStatus'] == '5':
