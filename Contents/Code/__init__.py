@@ -199,7 +199,8 @@ def CustomAddShow(sender, name, ID):
     
     oc = MediaContainer(no_cache=True)
     
-    default_settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
+    GetSickBeardDefaults()
+    
     root_dirs = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])
     
     '''Set the default settings in the plugin Dict[] for easy reference and modification'''
@@ -226,6 +227,14 @@ def CustomAddShow(sender, name, ID):
     dir.Append(Function(DirectoryItem(AddShow, "Add with these settings"), name=name, ID=ID, settings='custom'))
     
     return dir
+
+####################################################################################################
+
+def GetSickBeardDefaults():
+    default_settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
+    for key, value in default_settings['data']:
+        Dict['DefaultSettings'][key] = value    
+    return
     
 ####################################################################################################
 
