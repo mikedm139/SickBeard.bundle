@@ -295,6 +295,16 @@ def StatusSetting():
 
 ####################################################################################################
 
+def ChangeStatus(status, value):
+    if value == "True":
+        Dict['DefaultSettings']['status'] = status
+    else:
+        Dict['DefaultSettings']['status'] = ''
+    Dict.Save()
+    return
+
+####################################################################################################
+
 def SeasonFolderSetting(sender, group):
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(ChangeSetting, "on"), setting = "seasonFolders", value = "on", group=group))
