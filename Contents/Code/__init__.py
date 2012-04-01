@@ -1,5 +1,7 @@
 ''' http://172.16.1.125:8081/api/d613672d430777f73b2bc2a1c9d44b32/?cmd=show.addnew&help=1 '''
-
+''' http://172.16.1.125:8081/api/d613672d430777f73b2bc2a1c9d44b32/?cmd=episode.setstatus&tvdbid=79485&season=16&episode=1|2|3|4|5|6|7|8|9|10|11|12|13&status=wanted '''
+#message = API_request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},{'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])[data]
+    
 import re, os, subprocess, string
 from base64 import b64encode
 
@@ -164,8 +166,8 @@ def EpisodePopup(episode={}):
     
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, episode=episode), title="Force search for this episode"))
     for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
-        oc.add(DirectoryObject(key=Callback(SetStatus, tvdbid=episode['tvdbid'], season=episode['season'],
-            episode=episode['episode'], status=status), title="Mark this episode as '%s'" % string.capitalize(status)))
+        oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=episode['tvdbid'], season=episode['season'],
+            episode=episode['episode'], status=status),title="Mark this episode as '%s'" % string.capitalize(status)))
     
     return oc
 
@@ -357,7 +359,7 @@ def SeasonPopup(tvdbid, season):
     oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season), title="View Episode List"))
     
     for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
-        oc.add(DirectoryObject(key=Callback(SetStatus, tvdbid=tvdbid, season=season, episode='all', status=status),
+        oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
             title="Mark all episodes as '%s'" % string.capitalize(status)))
     
     return oc
@@ -945,83 +947,31 @@ def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
         return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
 
 ####################################################################################################
-###def EpisodeSetStatus(episode={})
-###'''Present a menu with options to change the wanted/skipped/archived/ignored status of the given episode'''
-def MarkEpisodeWanted(sender, showID, seasonNum, episodeNum):
-    '''tell SickBeard to do mark the given episode as "wanted"'''
-    
-    url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+episodeNum+'&status=3'
-    
-    try:
-        result = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
-        return MessageContainer('SickBeard Plugin', L('Episode marked as wanted'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable mark as wanted'))
 
+def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
+    '''tell SickBeard to do mark the given episode(s) with the given status'''
+    
+    message = API_request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
+        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])[data]
+    
+    if entire_season:
+        return True
+    else:
+        return ObjectContainer(header=NAME, message=message)
+    
 ####################################################################################################
 
-def MarkSeasonWanted(sender, showID, seasonInt):
+def SetSeasonStatus(tvdbid, season, status):
     '''iterate through the given season and tell SickBeard to mark each episode as wanted'''
     
-    #url = Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+epNum+'&status=3'
+    count = 0
+    episodes = API_Request([{'key':'cmd','value':'show.seasons'},{'key':'tvdbid','value':tvdbid},
+        {'key':'season','value':season}])[data]
+    for key, value in episodes:
+        if SetEpisode(tvdbid, season, episode=key, status=status, entire_season=True):
+            count = count +1
     
-    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
-    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
-    episodesMarked = 0
-    for episode in episodeList.xpath('//tr'):
-        if episode.get('class') == "seasonheader":
-            pass
-        elif episode.get('class') == None:
-            pass
-        elif seasonInt == 'all':
-            params = episode.xpath('.//a')[0].get('href').split('&')
-            #Log(params)
-            epNum = -1
-            seasonNum = -1
-            for param in params:
-                #Log(param)
-                if param[:7] == 'episode':
-                    epNum = param.split('=')[1]
-                elif param[:6] == 'season':
-                    seasonNum = param.split('=')[1]
-            #epNum = episode.xpath('.//a')[0].get('name')
-            #Log('Episode: '+str(epNum))
-            #Log('Season: '+str(seasonNum))
-            try:
-                result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+epNum+'&status=3', errors='ignore', cacheTime=0, headers=AuthHeader()).content
-                Log('Episode: '+seasonNum+'x'+epNum+' marked as "Wanted"')
-                episodesMarked += 1
-            except:
-                Log('Failed: Unable to mark episode '+seasonNum+'x'+epNum+' as "Wanted"')
-                pass
-        elif len(episode.xpath('.//a')) > 0:
-            # count all episode for the given season of the given series
-            params = episode.xpath('.//a')[0].get('href').split('&')
-            #Log(params)
-            epNum = -1
-            seasonNum = -1
-            for param in params:
-                #Log(param)
-                if param[:7] == 'episode':
-                    epNum = param.split('=')[1]
-                elif param[:6] == 'season':
-                    seasonNum = param.split('=')[1]
-            #epNum = episode.xpath('.//a')[0].get('name')
-            #Log('Episode: '+str(epNum))
-            #Log('Season: '+str(seasonNum))
-            if str(seasonNum)[0:len(str(seasonInt))] == seasonInt:
-                try:
-                    result = HTTP.Request(Get_SB_URL() + '/home/setStatus?show='+showID+'&eps='+seasonNum+'x'+epNum+'&status=3', errors='ignore', cacheTime=0, headers=AuthHeader()).content
-                    Log('Episode: '+seasonNum+'x'+epNum+' marked as "Wanted"')
-                    episodesMarked += 1
-                except:
-                    Log('Failed: Unable to mark episode '+seasonNum+'x'+epNum+' as "Wanted"')
-                    pass
-        else:
-            pass
-    
-    return MessageContainer('SickBeard Plugin', L(str(episodesMarked)+' marked as "Wanted"'))
+    return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, string.capitalize(status)))
 
 ####################################################################################################
 
