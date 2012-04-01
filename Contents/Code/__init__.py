@@ -348,15 +348,17 @@ def SeasonList(tvdbid):
 
 ####################################################################################################
 
-def SeasonSelectMenu(sender, showID, showName, seasonNum):
+def SeasonPopup(tvdbid, season):
     '''display a popup menu with options for the selected season'''
-    dir = MediaContainer(title='')
-    dir.Append(Function(DirectoryItem(EpisodeList, title="View Episode List"), showID=showID,
-        showName=showName, seasonInt=seasonNum))
-    dir.Append(Function(DirectoryItem(MarkSeasonWanted, title="Mark all episodes as 'Wanted'"),
-        showID=showID, seasonInt=seasonNum))
+    oc = ObjectContainer()
     
-    return dir
+    oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season), title="View Episode List"))
+    
+    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+        oc.add(DirectoryObject(key=Callback(SetStatus, tvdbid=tvdbid, season=season, episode='all', status=status),
+            title="Mark all episodes as '%s'" % string.capitalize(status)))
+    
+    return oc
     
 ####################################################################################################
 
