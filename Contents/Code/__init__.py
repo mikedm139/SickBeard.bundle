@@ -173,7 +173,7 @@ def AddShowMenu(show={}):
     oc = ObjectContainer()
     
     oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=result['tvdbid']), title="Add with default settings"))
-    oc.add(DirectoryObjecy(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
+    oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
     
     return oc
     
@@ -193,46 +193,39 @@ def AddShow(tvdbID, settings=[]):
     
 ####################################################################################################
 
-def CustomAddShow(sender, name, ID):
+def CustomAddShow(tvdbID):
     '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
         modifications before adding a show with custom settings'''
     
-    oc = MediaContainer(no_cache=True)
+    oc = MediaContainer(title2="Add Show Settings...", no_cache=True)
     
     GetSickBeardDefaults()
     GetSickBeardRootDirs()
     
-    '''Set the default settings in the plugin Dict[] for easy reference and modification'''
-    ###CARRY_ON FROM HERE###
-    
     '''Offer separate menu options for each default setting'''
-    ###TODO###
-    
-    if Dict['CustomSettings']['defaultStatus'] == '3':
-        statusLabel = "Wanted"
-    elif Dict['CustomSettings']['defaultStatus'] == '5':
-        statusLabel = "Skipped"
-    elif Dict['CustomSettings']['defaultStatus'] == '6':
-        statusLabel = "Archived"
-    elif Dict['CustomSettings']['defaultStatus'] == '7':
-        statusLabel = "Ignored"
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="archive"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language", summary=Dict['DefaultSettings']['lang']))
+    oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes", summary=Dict['DefaultSettings']['status']))
+    if Dict['DefaultSettings']['season_folders'] == 1:
+        season_folders = "True"
     else:
-        statusLabel = ""
+        season_folders = "False"
+    oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Use season Folders", summary=season_folders))
     
-    dir.Append(Function(PopupDirectoryItem(SetLanguage, "TVDB Language", infoLabel=Dict['CustomSettings']['tvdbLang']), group="Custom"))
-    dir.Append(Function(PopupDirectoryItem(SetStatus, "Status of previous episodes", infoLabel=statusLabel), group="Custom"))
-    dir.Append(Function(PopupDirectoryItem(SetSeasonFolders, "Use season Folders", infoLabel=Dict['CustomSettings']['seasonFolders']), group="Custom"))
-    dir.Append(Function(PopupDirectoryItem(SetQuality, "Download quality", infoLabel=Dict['CustomSettings']['anyQualities']), group="Custom"))
-    dir.Append(Function(DirectoryItem(AddShow, "Add with these settings"), name=name, ID=ID, settings='custom'))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=tvdbID), title="Add show with these settings"))
     
-    return dir
+    return oc
 
 ####################################################################################################
 
 def GetSickBeardDefaults():
     default_settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
     for key, value in default_settings['data']:
-        Dict['DefaultSettings'][key] = value    
+        Dict['DefaultSettings'][key] = value
+        
+    Dict['DefaultSettings']['lang'] = Prefs['TVDBLang']
+    
     return
     
 ####################################################################################################
@@ -243,7 +236,14 @@ def GetSickBeardRootDirs():
 
 ####################################################################################################
 
-def SetLanguage(sender, group):
+def QualitySetting(type):
+    ###TODO###
+    return
+
+####################################################################################################
+
+def LanguageSetting(sender, group):
+    '''use "sb.searchtvdb" with "help" flag to grab up-to-date list of possible Languages for tvdb'''
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(ChangeSetting, "en"), setting = "tvdbLang", value = "en", group=group))
     dir.Append(Function(DirectoryItem(ChangeSetting, "de"), setting = "tvdbLang", value = "de", group=group))
@@ -260,7 +260,7 @@ def SetLanguage(sender, group):
 
 ####################################################################################################
 
-def SetStatus(sender, group):
+def StatusSetting(sender, group):
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(ChangeSetting, "Wanted"), setting = "defaultStatus", value = "3", group=group))
     dir.Append(Function(DirectoryItem(ChangeSetting, "Skipped"), setting = "defaultStatus", value = "5", group=group))
@@ -270,7 +270,7 @@ def SetStatus(sender, group):
 
 ####################################################################################################
 
-def SetSeasonFolders(sender, group):
+def SeasonFolderSetting(sender, group):
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(ChangeSetting, "on"), setting = "seasonFolders", value = "on", group=group))
     dir.Append(Function(DirectoryItem(ChangeSetting, "off"), setting = "seasonFolders", value = "", group=group))
@@ -1151,7 +1151,9 @@ def API_URL():
 
 def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
-    ###TODO###
+    url = Get_SB_URL() + '/config/general'
+    page = HTML.ElementFromURL(url)
+    Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
     return
 
 ####################################################################################################
