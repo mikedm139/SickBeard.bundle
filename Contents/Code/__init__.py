@@ -96,8 +96,8 @@ def ComingEpisodes(timeframe=""):
     coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])
     
     for episode in coming_Eps['data'][timeframe]:
-        title = EpisodeTitle(episode)
-        summary = EpisodeSummary(episode)
+        title = FutureEpisodeTitle(episode)
+        summary = FutureEpisodeSummary(episode)
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
             title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
        
@@ -142,27 +142,32 @@ def ShowList():
         summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
             
-        oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid), title=title, summary=summary,
+        oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid, show=title), title=title, summary=summary,
             thumb=Callback(GetThumb, tvdbid=episode['tvdbid'])))
         
     return oc
     
 ####################################################################################################
 
-def SeriesPopup(tvdbid):
+def SeriesPopup(tvdbid, show):
     '''display a popup menu with the option to force a search for the selected series'''
     oc = ObjectContainer()
     
-    oc.add(DirectoryObject(key=Callback(SeasonList, tvdbid=tvdbid), title="View Season List"))
-    oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid), title="Edit SickBeard series options"))
+    oc.add(DirectoryObject(key=Callback(SeasonList, tvdbid=tvdbid, show=show), title="View Season List"))
+    oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid, show=show), title="Edit SickBeard series options"))
     
     return oc
     
 ####################################################################################################
 
-def EpisodePopup(episode={}):
+def EpisodePopup(episode={}, tvdbid=None, season=None):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     oc = ObjectContainer()
+    if tvdbid:
+        episode = API_Request([{'key':'cmd','value':'episode'},{'key':'tvdbid','value':tvdbid},
+            {'key':'season','value':season},{'key':'episode','value':episode}])[data]
+    else:
+        pass
     
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, episode=episode), title="Force search for this episode"))
     for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
@@ -341,22 +346,23 @@ def ChangeSeasonFolder(option, value):
 
 ####################################################################################################
 
-def SeasonList(tvdbid):
+def SeasonList(tvdbid, show):
     '''Display a list of all season of the given TV series in SickBeard'''
-    oc = ObjectContainer(title2="Seasons")
+    oc = ObjectContainer(title1=show, title2="Seasons")
     seasons = API_Request([{"key":"cmd","value":"show.seasonlist"},{"key":"tvdbid","value":tvdbid}])['data']
     for season in seasons:
-        oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid), title="Season %s" % season))
+        oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid),
+            title="Season %s" % season, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
     return oc
 
 ####################################################################################################
 
-def SeasonPopup(tvdbid, season):
+def SeasonPopup(tvdbid, season, show):
     '''display a popup menu with options for the selected season'''
     oc = ObjectContainer()
     
-    oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season), title="View Episode List"))
+    oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season, show=show), title="View Episode List"))
     
     for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
@@ -366,91 +372,17 @@ def SeasonPopup(tvdbid, season):
     
 ####################################################################################################
 
-def EpisodeList(sender, showID, showName, seasonInt):
+def EpisodeList(tvdbid, season, show):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
-    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    dir = MediaContainer(viewGroup='InfoList', title2=showName, noCache=True)
-
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
-    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
-    for episode in episodeList.xpath('//tr'):
-        if episode.get('class') == "seasonheader":
-            pass
-        elif episode.get('class') == None:
-            pass
-        elif seasonInt == 'all':
-            # display all episodes for the series
-            epNum = episode.xpath('.//a')[0].get('name')
-            #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
-            epTitle = episode.xpath('./td')[4].text.strip()
-            #Log('Title: ' + epTitle)
-            epDate = episode.xpath('./td')[5].text
-            #Log('AirDate: ' + epDate)
-            epFile = episode.xpath('./td')[6].text.strip()
-            if epFile != '':
-                if str(Prefs['tvDir'])[-1] == '/':
-                    filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
-                else:
-                    filePath = Prefs['tvDir']+'/%s/%s' % (showName, epFile)
-            else:
-                filePath = ''
-            #Log(filePath)
-            epStatus = episode.xpath('./td')[7].text
-            #Log('Status: ' + epStatus)
-            dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
-                infoLabel=epStatus, subtitle='Status: '+epStatus,
-                summary="Airdate: "+epDate+"\nFileName: "+filePath,
-                thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
-                episodeNum=epNum, file=filePath))
-
-        else:
-            # display all episode for the given season of the given series
-            try:
-                epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
-                #Log(epNum)
-            except:
-                #Log('epNum not found')
-                continue
-            ### Need to make changes here so that series with more than 9 seasons list episodes properly
-            try:
-                nextDigit=epNum[len(str(seasonInt))]
-                #Log('nextDigit='+nextDigit)
-            except:
-                nextDigit='-1'
-                #Log('nextDigit='+nextDigit)
-            #Log('Character at position '+ epNum[len(str(seasonInt))] + ' is ' + nextDigit)
-            if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
-                #ignore season with more digits than what we're searching for
-                continue
-            else:
-                if str(epNum)[0:len(str(seasonInt))] == seasonInt:
-                    epNum = str(epNum)[(len(str(seasonInt))+1):]
-                    #Log('Found: Season ' + seasonInt + ' Episode' + epNum)
-                    epTitle = episode.xpath('./td')[4].text.strip()
-                    #Log('Title: ' + epTitle)
-                    epDate = episode.xpath('./td')[5].text
-                    #Log('AirDate: ' + epDate)
-                    epFile = episode.xpath('./td')[6].text.strip()
-                    if epFile != '':
-                        if not Prefs['tvDir']:
-                            filePath = '%s/%s' % (showName, epFile)
-                        elif str(Prefs['tvDir'])[-1] == '/':
-                            filePath = Prefs['tvDir']+'%s/%s' % (showName, epFile)
-                        else:
-                            filePath = Prefs['tvDir']+'/%s/%s' % (showName, epFile)
-                    else:
-                        filePath = ''
-                    #Log(filePath)
-                    #Log(epFile)
-                    epStatus = episode.xpath('./td')[7].text
-                    #Log('Status: ' + epStatus)
-                    dir.Append(Function(PopupDirectoryItem(EpisodeSelectMenu, title=epNum+' '+epTitle,
-                        infoLabel=epStatus, subtitle='Status: '+epStatus,
-                        summary="Airdate: "+epDate+"\nFileName: "+filePath,
-                        thumb=Function(GetSeriesThumb, showName=showName)), showID=showID, seasonNum=seasonInt,
-                        episodeNum=epNum, file=filePath))
-        
-    return dir
+    oc = ObjectContainer(title1=show, title2="Season %s" % season)
+    episodes = API_Request([{"key":"cmd","value":"show.seasons"},{"key":"tvdbid","value":tvdbid},
+        {"key":"season","value":season}])['data']
+    for key, value in episodes:
+        summary = "Airdate: %s\nQuality: %s\nStatus: %s" % (value['airdate'], value['quality'], value['status'])
+        oc.add(PopupObjectDirectory(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
+            title=value['name'], summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    
+    return oc
 
 ####################################################################################################
 
@@ -1157,14 +1089,14 @@ def API_Request(params=[]):
     
 ####################################################################################################
 
-def EpisodeTitle(episode={}):
+def FutureEpisodeTitle(episode={}):
     '''build a string for the episode's title using the show name, season #, episode #, and episode title'''
     episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['ep_name'])
     return episode_title
     
 ####################################################################################################
 
-def EpisodeSummary(episode={}):
+def FutureEpisodeSummary(episode={}):
     '''build a string for the episode's summary using the episode's airdate, airs, network, paused(if true), quality, show_status,
         and ep_plot'''
     if episode['paused']:
