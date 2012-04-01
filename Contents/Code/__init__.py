@@ -240,36 +240,38 @@ def GetSickBeardRootDirs():
 
 def QualitySetting(type):
     oc = ObjectContainer(title2="%s Quality" % string.capitalize(type), no_cache=True)
-    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][type]:
+    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][type]['allowedValues']:
         if quality in Dict['DefaultSettings'][type]:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, action="remove"), title = "[*] %s" % quality))
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, type=type, action="remove"), title = "[*] %s" % quality))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, action="add"), title = "[ ] %s" % quality))
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, type=type, action="add"), title = "[ ] %s" % quality))
     return oc
 
 ####################################################################################################
 
-def ChangeQualities(quality, action):
+def ChangeQualities(quality, type, action):
+    qualities = Dict['DefaultSettings'][type]
+    if action == "remove":
+        qualities.remove(quality)
+    elif action == "add":
+        qualities.append(quality)
+    else:
+        pass
+    Dict['DefaultSettings'][type] = qualities
+    Dict.Save()
     return
 
 ####################################################################################################
 
-def LanguageSetting(sender, group):
-    '''use "sb.searchtvdb" with "help" flag to grab up-to-date list of possible Languages for tvdb'''
-    dir = MediaContainer()
-    dir.Append(Function(DirectoryItem(ChangeSetting, "en"), setting = "tvdbLang", value = "en", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "de"), setting = "tvdbLang", value = "de", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "es"), setting = "tvdbLang", value = "es", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "fr"), setting = "tvdbLang", value = "fr", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "it"), setting = "tvdbLang", value = "it", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "ja"), setting = "tvdbLang", value = "ja", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "ko"), setting = "tvdbLang", value = "ko", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "nl"), setting = "tvdbLang", value = "nl", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "pt"), setting = "tvdbLang", value = "pt", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "ru"), setting = "tvdbLang", value = "ru", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "zh"), setting = "tvdbLang", value = "zh", group=group))
-    return dir
-
+def LanguageSetting():
+    oc = ObjectContainer(title2="tvdb Language", no_cache=True)
+    for lang in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['lang']['allowedValues']:
+        if lang in Dict['DefaultSettings']['lang']:
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "[*] %s" % lang))
+        else:
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="False"), title = "[ ] %s" % lang))
+    return oc
+    
 ####################################################################################################
 
 def StatusSetting(sender, group):
