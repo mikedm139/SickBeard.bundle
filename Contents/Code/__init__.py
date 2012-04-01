@@ -274,6 +274,13 @@ def LanguageSetting():
     
 ####################################################################################################
 
+def ChangeLanguage(lang, value):
+    Dict['DefaultSettings']['lang'] = lang
+    Dict.Save()
+    return
+
+####################################################################################################
+
 def StatusSetting(sender, group):
     dir = MediaContainer()
     dir.Append(Function(DirectoryItem(ChangeSetting, "Wanted"), setting = "defaultStatus", value = "3", group=group))
