@@ -206,9 +206,9 @@ def CustomAddShow(tvdbID):
     
     '''Offer separate menu options for each default setting'''
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="archive"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language", summary=Dict['DefaultSettings']['lang']))
-    oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes", summary=Dict['DefaultSettings']['status']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
+    oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     if Dict['DefaultSettings']['season_folders'] == 1:
         season_folders = "True"
     else:
@@ -275,19 +275,23 @@ def LanguageSetting():
 ####################################################################################################
 
 def ChangeLanguage(lang, value):
-    Dict['DefaultSettings']['lang'] = lang
+    if value == "True":
+        Dict['DefaultSettings']['lang'] = lang
+    else:
+        Dict['DefaultSettings']['lang'] = ''
     Dict.Save()
     return
 
 ####################################################################################################
 
-def StatusSetting(sender, group):
-    dir = MediaContainer()
-    dir.Append(Function(DirectoryItem(ChangeSetting, "Wanted"), setting = "defaultStatus", value = "3", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "Skipped"), setting = "defaultStatus", value = "5", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "Archived"), setting = "defaultStatus", value = "6", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "Ignored"), setting = "defaultStatus", value = "7", group=group))
-    return dir
+def StatusSetting():
+    oc = ObjectContainer(title2="Status", no_cache=True)
+    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+        if status in Dict['DefaultSettings']['status']:
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "[*] %s" % status))
+        else:
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="False"), title = "[ ] %s" % status))
+    return oc
 
 ####################################################################################################
 
