@@ -97,7 +97,7 @@ def ComingEpisodes(timeframe=""):
         title = EpisodeTitle(episode)
         summary = EpisodeSummary(episode)
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
-            title=title, summary=summary, thumb=Callback(GetThumb, tvdbID=episode['tvdbid']))) 
+            title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
        
     return oc
 
@@ -114,7 +114,7 @@ def Search(query):
             key=Callback(AddShowMenu, show=result),
             title = result['name'],
             summary = "TVDB ID: %s\nFirst Aired: %s" % (result['tvdbid'], result['first_aired']),
-            thumb = Callback(GetThumb, tvdbID=result['tvdbid'])))
+            thumb = Callback(GetThumb, tvdbid=result['tvdbid'])))
     
     return oc
     
@@ -141,7 +141,7 @@ def ShowList():
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
             
         oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid), title=title, summary=summary,
-            thumb=Callback(GetThumb, tvdbID=episode['tvdbid'])))
+            thumb=Callback(GetThumb, tvdbid=episode['tvdbid'])))
         
     return oc
     
@@ -174,14 +174,14 @@ def AddShowMenu(show={}):
     
     oc = ObjectContainer()
     
-    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=result['tvdbid']), title="Add with default settings"))
-    oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbID=result['tvdbid']), title="Add with custom settings"))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=result['tvdbid']), title="Add with default settings"))
+    oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbid=result['tvdbid']), title="Add with custom settings"))
     
     return oc
     
 ####################################################################################################
 
-def AddShow(tvdbID, settings=[]):
+def AddShow(tvdbid, settings=[]):
     '''add the given show to the SickBeard database with the given settings,
         or use SickBeard's default settings if settings == []'''
     
@@ -195,7 +195,7 @@ def AddShow(tvdbID, settings=[]):
     
 ####################################################################################################
 
-def CustomAddShow(tvdbID):
+def CustomAddShow(tvdbid):
     '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
         modifications before adding a show with custom settings'''
     
@@ -222,7 +222,7 @@ def CustomAddShow(tvdbID):
         else:
             settings.append({'key':key,'value':value})
             
-    oc.add(DirectoryObject(key=Callback(AddShow, tvdbID=tvdbID, settings=settings), title="Add show with these settings"))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, settings=settings), title="Add show with these settings"))
     
     return oc
 
@@ -337,27 +337,14 @@ def ChangeSeasonFolder(option, value):
 
 ####################################################################################################
 
-def SeasonList(sender, showID, showName):
+def SeasonList(tvdbid):
     '''Display a list of all season of the given TV series in SickBeard'''
-    seasonListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    if Client.Platform == ClientPlatform.iOS:
-        dir = MediaContainer(viewGroup='List', title2=showName)
-    else:
-        dir = MediaContainer(viewGroup='InfoList', title2=showName)
-    listPage = HTML.ElementFromURL(seasonListUrl, errors='ignore', headers=AuthHeader())
-    seasonList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
-    epCount = GetEpisodes(showID, 'all')
-    #Log(epCount)
-    dir.Append(Function(PopupDirectoryItem(SeasonSelectMenu, title='All Seasons', infoLabel=epCount, subtitle=showName,
-        thumb=Function(GetSeriesThumb, showName=showName), showID=showID, showName=showName, seasonInt='all')))
-    for season in seasonList.xpath('//input[@class="seasonCheck"]'):
-        seasonNum = season.get('id')
-        epCount = GetEpisodes(showID, seasonNum)
-        #Log(epCount)
-        dir.Append(Function(PopupDirectoryItem(SeasonSelectMenu, title='Season '+seasonNum, infoLabel=epCount,
-            subtitle=showName, thumb=Function(GetSeasonThumb, showName=showName, seasonInt=seasonNum)),
-            showID=showID, showName=showName, seasonNum=seasonNum))
-    return dir
+    oc = ObjectContainer(title2="Seasons")
+    seasons = API_Request([{"key":"cmd","value":"show.seasonlist"},{"key":"tvdbid","value":tvdbid}])['data']
+    for season in seasons:
+        oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid), title="Season %s" % season))
+    
+    return oc
 
 ####################################################################################################
 
@@ -1236,7 +1223,7 @@ def EpisodeSummary(episode={}):
     
 ####################################################################################################
 
-def GetThumb(tvdbID):
-    thumb_url = API_URL + "cmd=show.getposter&tvdbid=%s" % tvdbID
+def GetThumb(tvdbid):
+    thumb_url = API_URL + "cmd=show.getposter&tvdbid=%s" % tvdbid
     data = HTTP.Request(thumb_url).content
     return DataObject(data, 'image/jpeg')
