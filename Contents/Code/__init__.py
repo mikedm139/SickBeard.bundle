@@ -320,13 +320,12 @@ def SeasonFolderSetting():
     
 ####################################################################################################
 
-def ChangeSetting(sender, setting, value, group):
-    
-    if group == 'Custom':
-        Dict['CustomSettings'][setting] = value
-    elif group == 'Default':
-        Dict['DefaultSettings'][setting] = value
-    
+def ChangeSeasonFolder(option, value):
+    if value == "True":
+        Dict['DefaultSettings']['season_folder'] = option
+    else:
+        Dict['DefaultSettings']['season_folder'] = ''
+    Dict.Save()
     return
 
 ####################################################################################################
