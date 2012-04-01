@@ -1,3 +1,5 @@
+''' http://172.16.1.125:8081/api/d613672d430777f73b2bc2a1c9d44b32/?cmd=show.addnew&help=1 '''
+
 import re, os, subprocess, string
 from base64 import b64encode
 
@@ -237,7 +239,17 @@ def GetSickBeardRootDirs():
 ####################################################################################################
 
 def QualitySetting(type):
-    ###TODO###
+    oc = ObjectContainer(title2="%s Quality" % string.capitalize(type), no_cache=True)
+    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][type]:
+        if quality in Dict['DefaultSettings'][type]:
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, action="remove"), title = "[*] %s" % quality))
+        else:
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, action="add"), title = "[ ] %s" % quality))
+    return oc
+
+####################################################################################################
+
+def ChangeQualities(quality, action):
     return
 
 ####################################################################################################
