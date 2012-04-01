@@ -163,7 +163,9 @@ def EpisodePopup(episode={}):
     oc = ObjectContainer()
     
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, episode=episode), title="Force search for this episode"))
-    oc.add(DirectoryObject(key=Callback(EpisodeSetStatus, episode=episode),  title="Mark this episode as wanted"))
+    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+        oc.add(DirectoryObject(key=Callback(SetStatus, tvdbid=episode['tvdbid'], season=episode['season'],
+            episode=episode['episode'], status=status), title="Mark this episode as '%s'" % string.capitalize(status)))
     
     return oc
 
