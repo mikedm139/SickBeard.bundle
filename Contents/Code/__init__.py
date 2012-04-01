@@ -305,12 +305,19 @@ def ChangeStatus(status, value):
 
 ####################################################################################################
 
-def SeasonFolderSetting(sender, group):
-    dir = MediaContainer()
-    dir.Append(Function(DirectoryItem(ChangeSetting, "on"), setting = "seasonFolders", value = "on", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "off"), setting = "seasonFolders", value = "", group=group))
-    return dir
-
+def SeasonFolderSetting():
+    oc = ObjectContainer(title2="Status", no_cache=True)
+    for option in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['season_folder']['allowedValues']:
+        if option:
+            label = "Yes"
+        else:
+            label = "No"
+        if option in Dict['DefaultSettings']['season_folder']:
+            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "[*] %s" % label))
+        else:
+            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "[ ] %s" % label))
+    return oc
+    
 ####################################################################################################
 
 def ChangeSetting(sender, setting, value, group):
