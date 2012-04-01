@@ -313,15 +313,6 @@ def SeasonFolderSetting(sender, group):
 
 ####################################################################################################
 
-def SetQuality(sender, group):
-    dir = MediaContainer()
-    dir.Append(Function(DirectoryItem(ChangeSetting, "SD"), setting = "anyQualities", value = "SD", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "HD"), setting = "anyQualities", value = "HD", group=group))
-    dir.Append(Function(DirectoryItem(ChangeSetting, "Any"), setting = "anyQualities", value = "Any", group=group))
-    return dir
-
-####################################################################################################
-
 def ChangeSetting(sender, setting, value, group):
     
     if group == 'Custom':
