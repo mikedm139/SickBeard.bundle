@@ -207,12 +207,12 @@ def CustomAddShow(tvdbid):
     
     oc = MediaContainer(title2="Add Show Settings...", no_cache=True)
     
-    GetSickBeardDefaults()
+    GetQualityDefaults(group="DefaultSettings")
     GetSickBeardRootDirs()
     
     '''Offer separate menu options for each default setting'''
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, type="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
     oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     if Dict['DefaultSettings']['season_folders'] == 1:
@@ -234,12 +234,15 @@ def CustomAddShow(tvdbid):
 
 ####################################################################################################
 
-def GetSickBeardDefaults():
-    default_settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
-    for key, value in default_settings['data']:
-        Dict['DefaultSettings'][key] = value
+def GetQualityDefaults(group="", tvdbid=None):
+    if group = "DefaultSettings":
+        settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
+    else:
+        settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid":tvdbid}])
+    for key, value in settings['data']:
+        Dict[group][key] = value
         
-    Dict['DefaultSettings']['lang'] = Prefs['TVDBLang']
+    Dict[group]['lang'] = Prefs['TVDBLang']
     
     return
     
@@ -251,26 +254,26 @@ def GetSickBeardRootDirs():
 
 ####################################################################################################
 
-def QualitySetting(type):
-    oc = ObjectContainer(title2="%s Quality" % string.capitalize(type), no_cache=True)
-    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][type]['allowedValues']:
-        if quality in Dict['DefaultSettings'][type]:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, type=type, action="remove"), title = "[*] %s" % quality))
+def QualitySetting(group="", category):
+    oc = ObjectContainer(title2="%s Quality" % string.capitalize(category), no_cache=True)
+    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][category]['allowedValues']:
+        if quality in Dict['DefaultSettings'][category]:
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "[*] %s" % quality))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, quality=quality, type=type, action="add"), title = "[ ] %s" % quality))
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="add"), title = "[ ] %s" % quality))
     return oc
 
 ####################################################################################################
 
-def ChangeQualities(quality, type, action):
-    qualities = Dict['DefaultSettings'][type]
+def ChangeQualities(group, quality, category, action):
+    qualities = Dict[group][category]
     if action == "remove":
         qualities.remove(quality)
     elif action == "add":
         qualities.append(quality)
     else:
         pass
-    Dict['DefaultSettings'][type] = qualities
+    Dict[group][category] = qualities
     Dict.Save()
     return
 
@@ -383,282 +386,42 @@ def EpisodeList(tvdbid, season, show):
 
 ####################################################################################################
 
-def EditSeries(sender, showID, showName):
+def EditSeries(tvdbid):
     '''display a menu of options for editing SickBeard functions for the given series'''
     
-    cleanSlate = ResetGlobalQualityLists()
+    show = API_Request([{"key":"cmd","value":"show"},{"key":"tvdbid","value":tvdbid}])['data']
     
-    dir = MediaContainer(viewGroup='InfoList', title2='Edit '+showName, noCache=True)
+    oc = ObjectContainer(title2=show['show_name'], no_cache=True)
     
-    dir.Append(Function(PopupDirectoryItem(RescanFiles, 'Re-Scan Files', subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID=showID))
-    dir.Append(Function(PopupDirectoryItem(RenameEpisodes, 'Rename Episodes', subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID))
-    dir.Append(Function(PopupDirectoryItem(ForceFullUpdate, 'Force Full Update', subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID))
-    dir.Append(Function(PopupDirectoryItem(DeleteShow, 'Delete Series', subtitle='Series: '+ showName,
-        thumb=R(ICON)), showID))
+    oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.refresh"},{"key":"tvdbid","value":tvdbid}],
+        return_message=True), title='Re-Scan Files', summary="Refresh a show in SickBeard by rescanning local files", thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.update"},{"key":"tvdbid","value":tvdbid}],
+        return_message=True), title='Force Full Update', summary="Update a show in SickBeard by pulling down information from TVDB and rescan local files",
+        thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.delete"},{"key":"tvdbid","value":tvdbid}],
+        return_message=True), title='Delete Series', summary="Delete a show from SickBeard", thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
-    seriesPrefs = GetSeriesPrefs(showID)
-    
-    if Client.Platform == ClientPlatform.iOS:
-        dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting ['+seriesPrefs['qualityPreset']+']',
-            subtitle='Series: '+ showName, thumb=R(ICON)), showID=showID, showName=showName))
+    if not show['paused']:
+        oc.add(DirectoryObject(key=Callback(API_Request, [{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
+            {"key":"pause","value":"1"}], return_message=True), title='Pause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
     else:
-        dir.Append(Function(PopupDirectoryItem(SeriesQualityMenu, 'Quality Setting', infoLabel=seriesPrefs['qualityPreset'], subtitle='Series: '+ showName,
-            thumb=R(ICON)), showID=showID, showName=showName))
+        oc.add(DirectoryObject(key=Callback(API_Request, [{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
+            {"key":"pause","value":"0"}], return_message=True), title='Unpause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
+            
     
-    if seriesPrefs['paused']:
-        dir.Append(Function(DirectoryItem(UnpauseSeries, 'Unpause series', subtitle='Series: ' + showName,
-        thumb=R(ICON)), showID=showID, showName=showName))
-    else:
-        dir.Append(Function(DirectoryItem(PauseSeries, 'Pause series', subtitle='Series: ' + showName,
-        thumb=R(ICON)), showID=showID, showName=showName))
+    oc.add(DirectoryObject(key=Callback(SeriesQualityMenu, tvdbid), title="Quality Settings: [%s]" % show['quality'],
+        summary="Initial: %s \nArchive: %s" % (show['quality_details']['initial'], show['quality_details']['archive']), thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
-    if Client.Platform == ClientPlatform.iOS:
-        if seriesPrefs['airByDate']:
-            dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date [On]',
-                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
-        else:
-            dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date [Off]', infoLabel='Off',
-                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
-    else:
-        if seriesPrefs['airByDate']:
-            dir.Append(Function(DirectoryItem(AirByDate_Off, 'Air by Date', infoLabel='On',
-                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
-        else:
-            dir.Append(Function(DirectoryItem(AirByDate_On, 'Air by Date', infoLabel='Off',
-                subtitle='Series: '+showName, thumb=R(ICON)), showID=showID, showName=showName))
-    
-    return dir
-
-####################################################################################################
-
-def ResetGlobalQualityLists():
-    '''reset the global quality lists so that they don't carry over between editing different series'''
-    try:
-        Dict['anyQualities'] = []
-        Dict['bestQualities'] = []
-        return True
-    except:
-        return False
-
-####################################################################################################
-
-def ForceFullUpdate(sender, showID):
-    '''tell SickBeard to do a force search for the given series'''
-    updateUrl = Get_SB_URL() + '/home/updateShow?show=' + showID +'&force=1'
-    #Log(updateUrl)
-    try:
-        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
-        return MessageContainer('SickBeard Plugin', L('Force search started'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
-
-####################################################################################################
-
-def RescanFiles(sender, showID):
-    '''tell SickBeard to do re-scan files for the given series'''
-    updateUrl = Get_SB_URL() + '/home/refreshShow?show=' + showID
-    #Log(updateUrl)
-    try:
-        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
-        return MessageContainer('SickBeard Plugin', L('Full file scan started'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable to start file scan'))
-
-####################################################################################################
-
-def RenameEpisodes(sender, showID):
-    '''tell SickBeard to do fix episode names for the given series'''
-    updateUrl = Get_SB_URL() + '/home/fixEpisodeNames?show=' + showID
-    #Log(updateUrl)
-    try:
-        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
-        return MessageContainer('SickBeard Plugin', L('Episode renaming process started'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable to start renaming process'))
-
-####################################################################################################
-
-def PauseSeries(sender, showID, showName):
-    '''tell sickbeard to pause the given series'''
-    seriesPrefs = GetSeriesPrefs(showID)
-    #submit existing values as they are
-    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
-    for i in range(len(seriesPrefs['anyQualities'])):
-        postValues = postValues + '&anyQualities=' + str(seriesPrefs['anyQualities'][i])
-    for j in range(len(seriesPrefs['bestQualities'])):
-        postValues = postValues + '&bestQualities=' + str(seriesPrefs['bestQualities'][j])
-    if seriesPrefs['seasonFolders']:
-        postValues = postValues + '&seasonfolders=on'
-    #submit the value for 'pause'
-    postValues = postValues + '&paused=on'
-    #submit air_by_date as is
-    if seriesPrefs['airByDate'] :
-        postValues = postValues + '&air_by_date=on'
-        
-    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
-    try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    except:
-        return MessageContainer('SickBeard', L('Series Pause command failed'))
-    
-    return MessageContainer('SickBeard', L(showName+' Paused.'))
-
-####################################################################################################
-
-def UnpauseSeries(sender, showID, showName):
-    '''tell sickbeard to unpause the given series'''
-    seriesPrefs = GetSeriesPrefs(showID)
-    #submit existing values as they are
-    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
-    for i in range(len(seriesPrefs['anyQualities'])):
-        postValues = postValues + '&anyQualities=' + str(seriesPrefs['anyQualities'][i])
-    for j in range(len(seriesPrefs['bestQualities'])):
-        postValues = postValues + '&bestQualities=' + str(seriesPrefs['bestQualities'][j])
-    if seriesPrefs['seasonFolders']:
-        postValues = postValues + '&seasonfolders=on'
-    ###omit the value for 'pause'###
-    #submit air_by_date as is
-    if seriesPrefs['airByDate'] :
-        postValues = postValues + '&air_by_date=on'
-    
-    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
-    try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    except:
-        return MessageContainer('SickBeard', L('Series Unpause command failed'))
-    
-    return MessageContainer('SickBeard', L(showName+' Unpaused.'))
-    
-####################################################################################################
-
-def AirByDate_On(sender, showID, showName):
-    '''tell sickbeard to use air_by_date for the given series'''
-    seriesPrefs = GetSeriesPrefs(showID)
-    #submit existing values as they are
-    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
-    for i in range(len(seriesPrefs['anyQualities'])):
-        postValues = postValues + '&anyQualities=' + str(seriesPrefs['anyQualities'][i])
-    for j in range(len(seriesPrefs['bestQualities'])):
-        postValues = postValues + '&bestQualities=' + str(seriesPrefs['bestQualities'][j])
-    if seriesPrefs['seasonFolders']:
-        postValues = postValues + '&seasonfolders=on'
-    if seriesPrefs['paused']:
-        postValues = postValues + '&paused=on'
-    #submit air_by_date vale
-    postValues = postValues + '&air_by_date=on'
-        
-    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
-    try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    except:
-        return MessageContainer('SickBeard', L('"Air by date" command failed'))
-    
-    return MessageContainer('SickBeard', L(showName + '"Air by date" setting turned on.'))
-
-####################################################################################################
-
-def AirByDate_Off(sender, showID, showName):
-    '''tell sickbeard not to use air_by_date for the given series'''
-    seriesPrefs = GetSeriesPrefs(showID)
-    #submit existing values as they are
-    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
-    for i in range(len(seriesPrefs['anyQualities'])):
-        postValues = postValues + '&anyQualities=' + str(seriesPrefs['anyQualities'][i])
-    for j in range(len(seriesPrefs['bestQualities'])):
-        postValues = postValues + '&bestQualities=' + str(seriesPrefs['bestQualities'][j])
-    if seriesPrefs['seasonFolders']:
-        postValues = postValues + '&seasonfolders=on'
-    if seriesPrefs['paused']:
-        postValues = postValues + '&paused=on'
-    ### omit value for air_by_date
-    
-    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
-    try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    except:
-        return MessageContainer('SickBeard', L('Could not turn "Air by date" off.'))
-    
-    return MessageContainer('SickBeard', L(showName + '"Air by date" setting turned off.'))
-
-####################################################################################################
-
-def GetSeriesPrefs(showID):
-    '''get the existing selections from the series edit page'''
-    url = Get_SB_URL() + '/home/editShow?show=' + showID
-    page = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    seriesPrefs = (page).replace('SELECTED', 'selected=True')
-    seriesPrefs = (seriesPrefs).replace('CHECKED', 'checked=True')
-    seriesPrefs = re.sub('(<option.*>)\n', '\1</option>', seriesPrefs)
-    seriesPrefsPage = HTML.ElementFromString(seriesPrefs)
-    location = seriesPrefsPage.xpath('//input[@name="location"]')[0].get('value')
-    try:
-        useSeasonFolders = seriesPrefsPage.xpath('//input[@name="seasonfolders"]')[0].get('checked')
-        if useSeasonFolders == None:
-            useSeasonFolders = False
-    except:
-        useSeasonFolders = False
-    try:
-        paused = seriesPrefsPage.xpath('//input[@name="paused"]')[0].get('checked')
-        if paused == None:
-            paused = False
-    except:
-        paused = False
-    try:
-        airByDate = seriesPrefsPage.xpath('//input[@name="air_by_date"]')[0].get('checked')
-        if airByDate == None:
-            airByDate = False
-    except:
-        airByDate = False
-    qualityPreset = ''
-    anyQualities = []
-    bestQualities = []
-    for option in seriesPrefsPage.xpath('//select[@id="qualityPreset"]/option'):
-        if option.get('selected'):
-            qualityPreset = option.get('value')
-    for option in seriesPrefsPage.xpath('//select[@id="anyQualities"]/option'):
-        if option.get('selected'):
-            anyQualities.append(int(option.get('value')))
-    for option in seriesPrefsPage.xpath('//select[@id="bestQualities"]/option'):
-        if option.get('selected'):
-            bestQualities.append(int(option.get('value')))
-    
-    ### convert qualityPreset value into a descriptive title ###
-    if qualityPreset == '3':
-        qualityPreset = 'SD'
-    elif qualityPreset == '28':
-        qualityPreset = 'HD'
-    elif qualityPreset == '31':
-        qualityPreset = 'Any'
-    elif qualityPreset == '':
-        if anyQualities == [1,4]:
-            if bestQualities == [4]:
-                qualityPreset = 'Best'
-        else:
-            qualityPreset = 'Custom'
-    
-    return {'location' : location, 'anyQualities' : anyQualities, 'qualityPreset' : qualityPreset,
-            'bestQualities' : bestQualities, 'seasonFolders' : useSeasonFolders, 'paused' : paused,
-            'airByDate' : airByDate}
-
-####################################################################################################
-
-def DeleteShow(sender, showID):
-    '''tell SickBeard to do delete the given series'''
-    updateUrl = Get_SB_URL() + '/home/deleteShow?show=' + showID
-    #Log(updateUrl)
-    try:
-        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
-        return MessageContainer('SickBeard', L(showName + ' - Deleted from SickBeard database.'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable to delete series'))
+    return oc
 
 ####################################################################################################
 
 def SeriesQualityMenu(sender, showID, showName):
     '''allow option to change quality setting for individual series'''
+    
+    #oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
+    #oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
+    
     dir = MediaContainer()
     
     ###Make sure that quality settings from editing another series are not carried over###
@@ -1067,7 +830,7 @@ def Get_API_Key():
 
 ####################################################################################################
 
-def API_Request(params=[]):
+def API_Request(params=[], return_message=False):
     '''use the given args to make an API request and return the JSON'''
     
     '''start with the base API url'''
@@ -1079,6 +842,8 @@ def API_Request(params=[]):
     request_url = request_url.strip('&')
     '''send the request and confirm success'''
     data = JSON.ObjectFromURL(request_url)
+    if return_message:
+        ObjectContainer(header=NAME, message=data['message'])
     if data['result'] == "success":
         return data
     else:
