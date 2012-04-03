@@ -1,7 +1,4 @@
-''' http://172.16.1.125:8081/api/d613672d430777f73b2bc2a1c9d44b32/?cmd=show.addnew&help=1 '''
-''' http://172.16.1.125:8081/api/d613672d430777f73b2bc2a1c9d44b32/?cmd=episode.setstatus&tvdbid=79485&season=16&episode=1|2|3|4|5|6|7|8|9|10|11|12|13&status=wanted '''
-#message = API_request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},{'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])[data]
-    
+
 import re, os, subprocess, string
 from base64 import b64encode
 
