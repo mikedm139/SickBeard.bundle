@@ -484,6 +484,7 @@ def SetSeasonStatus(tvdbid, season, status):
 
 ####################################################################################################
 
+### TODO ###
 def GetEpisodes(showID, seasonInt):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
         for the given season of the given series'''
@@ -564,46 +565,6 @@ def Get_SB_URL():
 def Get_PMS_URL():
     return 'http://'+Prefs['plexIP']+':32400'
     
-####################################################################################################
-
-def RemoveFromList(sender, value, list):
-    
-    tempList = []
-    
-    if list == 'initial':
-        tempList = Dict['anyQualities']
-        tempList.remove(value)
-        Dict['anyQualities'] = tempList
-    elif list == 'replacement':
-        tempList = Dict['bestQualities']
-        tempList.remove(value)
-        Dict['bestQualities'] = tempList
-    else:
-        pass
-    
-    return True
-
-####################################################################################################
-
-def AddToList(sender, value, list):
-    
-    tempList = []
-    
-    if list == 'initial':
-        tempList = Dict['anyQualities']
-        tempList.append(value)
-        tempList.sort()
-        Dict['anyQualities'] = tempList
-    elif list == 'replacement':
-        tempList = Dict['bestQualities']
-        tempList.append(value)
-        tempList.sort()
-        Dict['bestQualities'] = tempList
-    else:
-        pass
-    
-    return True
-
 ####################################################################################################
 
 def CheckForUpdate():
