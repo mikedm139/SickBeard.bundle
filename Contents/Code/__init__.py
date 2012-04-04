@@ -151,7 +151,7 @@ def SeriesPopup(tvdbid, show):
     oc = ObjectContainer()
     
     oc.add(DirectoryObject(key=Callback(SeasonList, tvdbid=tvdbid, show=show), title="View Season List"))
-    oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid, show=show), title="Edit SickBeard series options"))
+    oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid), title="Edit SickBeard series options"))
     
     return oc
     
@@ -212,7 +212,7 @@ def CustomAddShow(tvdbid):
     
     '''Offer separate menu options for each default setting'''
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['archive']))
     oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     if Dict['DefaultSettings']['season_folders'] == 1:
@@ -257,7 +257,7 @@ def GetSickBeardRootDirs():
 def QualitySetting(group="", category):
     oc = ObjectContainer(title2="%s Quality" % string.capitalize(category), no_cache=True)
     for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][category]['allowedValues']:
-        if quality in Dict['DefaultSettings'][category]:
+        if quality in Dict[group][category]:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "[*] %s" % quality))
         else:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="add"), title = "[ ] %s" % quality))
@@ -407,38 +407,29 @@ def EditSeries(tvdbid):
     else:
         oc.add(DirectoryObject(key=Callback(API_Request, [{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
             {"key":"pause","value":"0"}], return_message=True), title='Unpause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
-            
     
-    oc.add(DirectoryObject(key=Callback(SeriesQualityMenu, tvdbid), title="Quality Settings: [%s]" % show['quality'],
-        summary="Initial: %s \nArchive: %s" % (show['quality_details']['initial'], show['quality_details']['archive']), thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
+    oc.add(DirectoryObject(key=Callback(SeriesQuality, tvdbid=tvdbid, show=show['show_name']), title="Download Quality: [%s]", % show['quality'],
+        summary="Initial: %s \nArchive: %s" % (show['quality_details']['initial'],show['quality_details']['archive']), thumb=Callback(GetThumb, tvdbid=tvdbid)))
+        
     return oc
 
 ####################################################################################################
 
-def SeriesQualityMenu(sender, showID, showName):
+def SeriesQuality(tvdbid, show):
     '''allow option to change quality setting for individual series'''
     
-    #oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    #oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['initial']))
+    oc = ObjectContainer(title1=show, title2='Quality Settings', no_cache=True)
     
-    dir = MediaContainer()
+    GetQualityDefaults(group="Series", tvdbid=tvdbid)
     
-    ###Make sure that quality settings from editing another series are not carried over###
-    cleanSlate = ResetGlobalQualityLists()
-    
-    dir.Append(Function(DirectoryItem(CustomQualitiesMenu, title='Custom', subtitle='Choose your own qualities',
-        thumb=R(ICON)), showID=showID, showName=showName))
-    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='SD', subtitle='SD TV/SD DVD',
-        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='SD'))
-    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='HD', subtitle='HD TV/720p WEB-DL/720p BluRay',
-        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='HD'))
-    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='Any', subtitle='SD TV/SD DVD/HD TV/720p WEB-DL/720p BluRay',
-        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='Any'))
-    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='Best', subtitle='SD TV/HD TV replace with HD TV',
-        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='Best'))
-    
-    return dir
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="initial"), title="Initial Quality", 
+        summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="archive"), title="Archive Quality",
+        summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    ### TODO >>> SAVE NEW QUALITY SETTINGS ###
+    oc.add(DirectoryObject(key=Callback(SaveQualitySettings, tvdbid=tvdbid), title="",
+        summary="", thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    return oc
     
 ####################################################################################################    
 
