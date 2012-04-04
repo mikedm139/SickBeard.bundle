@@ -19,11 +19,6 @@ def Start():
     
     Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
-    if Dict['DefaultSettings'] == None:
-        Dict['DefaultSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '3',  'seasonFolders' : 'on', 'anyQualities' : 'HD', 'skipShow' : ''}
-    if Dict['CustomSettings'] == None:
-        Dict['CustomSettings'] = {'tvdbLang' : '', 'whichSeries' : '', 'rootDir' : '', 'defaultStatus' : '',  'seasonFolders' : '', 'anyQualities' : '', 'skipShow' : ''}
-    
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
     Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
 
@@ -57,7 +52,6 @@ def MainMenu():
         prompt="Search TVDB for...", thumb=R(ICON)))
     oc.add(PrefsObject, title="Preferences",subtitle="SickBeard plugin prefs",
         summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app", thumb=R(PREFS_ICON))
-    
     
     #updateValues = CheckForUpdate()
     #if updateValues['available']:
@@ -508,31 +502,31 @@ def Get_PMS_URL():
     return 'http://'+Prefs['plexIP']+':32400'
     
 ####################################################################################################
-
-def CheckForUpdate():
-    '''check if sickbeard can be updated'''
-    url = Get_SB_URL() + '/home'
-    try:
-        page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
-        updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
-        link = updateCheck.get('href')
-        #Log('Update available: '+link)
-        return {'available':True, 'link':link}
-    except:
-        #Log('No update available.')
-        return {'available':False, 'link':None}
-
+#
+#def CheckForUpdate():
+#    '''check if sickbeard can be updated'''
+#    url = Get_SB_URL() + '/home'
+#    try:
+#        page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
+#        updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
+#        link = updateCheck.get('href')
+#        #Log('Update available: '+link)
+#        return {'available':True, 'link':link}
+#    except:
+#        #Log('No update available.')
+#        return {'available':False, 'link':None}
+#
 ####################################################################################################
-
-def UpdateSB(sender, link):
-    url = Get_SB_URL() + link
-    try:
-        update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
-    except:
-        pass
-    restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
-    return ObjectContainer(header=NAME, message=L('SickBeard update started.'))
-    
+#
+#def UpdateSB(sender, link):
+#    url = Get_SB_URL() + link
+#    try:
+#        update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
+#    except:
+#        pass
+#    restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
+#    return ObjectContainer(header=NAME, message=L('SickBeard update started.'))
+#    
 ####################################################################################################
 
 def API_URL():
