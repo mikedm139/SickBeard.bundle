@@ -237,12 +237,11 @@ def CustomAddShow(tvdbid):
 def GetQualityDefaults(group="", tvdbid=None):
     if group = "DefaultSettings":
         settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
+        Dict[group]['lang'] = Prefs['TVDBLang']
     else:
         settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid":tvdbid}])
     for key, value in settings['data']:
         Dict[group][key] = value
-        
-    Dict[group]['lang'] = Prefs['TVDBLang']
     
     return
     
@@ -426,59 +425,26 @@ def SeriesQuality(tvdbid, show):
         summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="archive"), title="Archive Quality",
         summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    ### TODO >>> SAVE NEW QUALITY SETTINGS ###
-    oc.add(DirectoryObject(key=Callback(SaveQualitySettings, tvdbid=tvdbid), title="",
-        summary="", thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    oc.add(DirectoryObject(key=Callback(ApplyQualitySettings, tvdbid=tvdbid), title="Apply quality settings",
+        summary="Tell SickBeard to apply these quality settings to %s" % show, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     return oc
     
 ####################################################################################################    
 
-def ChangeSeriesQuality(sender, showID, showName, qualityPreset):
-    '''submit a change in quality for the given series'''
-       
-    seriesPrefs = GetSeriesPrefs(showID)
+def ApplyQualitySettings(tvdbid):
+    ### TODO >>> API_Requests and return message ###
+    settings = []
+    for key, value in Dict['Series']:
+        if range(len(value)) > 1:
+            settings.append({'key':key,'value':'|'.join(value)})
+        else:
+            settings.append({'key':key,'value':value})
     
-    if qualityPreset == 'SD':
-        seriesPrefs['anyQualities'] = [1,2]
-        seriesPrefs['bestQualites'] = []
-    elif qualityPreset == 'HD':
-        seriesPrefs['anyQualities'] = [4,8,16]
-        seriesPrefs['bestQualites'] = []
-    elif qualityPreset == 'Any':
-        seriesPrefs['anyQualities'] = [1,2,4,8,16]
-        seriesPrefs['bestQualites'] = []
-    elif qualityPreset == 'Custom':
-        seriesPrefs['anyQualities'] = Dict['anyQualities']
-        seriesPrefs['bestQualities'] = Dict['bestQualities']
-        
-    #Log(seriesPrefs['anyQualities'])
-    #Log(seriesPrefs['bestQualities'])
-    #submit new values for quality
-    postValues = '&location=' + String.Quote(seriesPrefs['location'], usePlus=True).replace('/', '%2F') 
-    for i in range(len(seriesPrefs['anyQualities'])):
-        postValues = postValues + '&anyQualities=' + str(seriesPrefs['anyQualities'][i])
-    for j in range(len(seriesPrefs['bestQualities'])):
-        postValues = postValues + '&bestQualities=' + str(seriesPrefs['bestQualities'][j])
+    message = API_Request([{"key":"cmd","value":"show.setquality"},{"key":"tvdbid","value":tvdbid},
+        {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}])['message']
     
-    #submit existing values as they are
-    if seriesPrefs['seasonFolders']:
-        postValues = postValues + '&seasonfolders=on'
-    if seriesPrefs['paused']:
-        postValues = postValues + '&paused=on'
-    if seriesPrefs['airByDate'] :
-        postValues = postValues + '&air_by_date=on'
-        
-    url = Get_SB_URL() + '/home/editShow?show='+showID+postValues
+    return ObjectContainer(header=NAME, message=message)
     
-    try:
-        result = HTTP.Request(url, errors='ignore', cacheTime=0, headers=AuthHeader()).content
-    except:
-        return MessageContainer('SickBeard', L('Failed to change quality settings.'))
-    
-    cleanSlate = ResetGlobalQualityLists()
-    
-    return MessageContainer('SickBeard', L('Changes applied to ' + showName))
-
 ####################################################################################################
 
 def CustomQualitiesMenu(sender, showID, showName):
