@@ -25,18 +25,6 @@
         "default": "8081" 
     },
     {
-        "id": "tvDir",
-        "label": "TV Directory",
-        "type": "text",
-        "default": "" 
-    },
-    {
-        "id": "plexIP",
-        "label": "Plex IP",
-        "type": "text",
-        "default": "localhost" 
-    },
-    {
         "id": "TVDBlang",
         "label": "TVDB Language",
         "type": "enum",
