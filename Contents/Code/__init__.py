@@ -134,8 +134,9 @@ def ShowList():
             paused = "True"
         else:
             paused = "False"
-        ###TODO(?) Re-add episode counts?###
-        title = show['show_name']
+        
+        episodes = GetEpisodes(tvdbid)
+        title = "%s   %s" % (show['show_name'], episodes)
         summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
             
@@ -484,76 +485,17 @@ def SetSeasonStatus(tvdbid, season, status):
 
 ####################################################################################################
 
-### TODO ###
-def GetEpisodes(showID, seasonInt):
+def GetEpisodes(tvdbid):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
-        for the given season of the given series'''
+        for the given series'''
+    show = API_RequestAPI_Request([{'key':'cmd','value':'show.stats'},{'key':'tvdbid','value':tvdbid},[data]
     
-    episodeListUrl = Get_SB_URL() + '/home/displayShow?show=' + showID
-    listPage = HTML.ElementFromURL(episodeListUrl, errors='ignore', cacheTime=0, headers=AuthHeader())
-    episodeList = listPage.xpath('//table[@class="sickbeardTable"]')[0]
-    allEpisodes = 0
-    haveEpisodes = 0
-    for episode in episodeList.xpath('//tr'):
-        #Log(episode.get('class'))
-        if episode.get('class') == "seasonheader":
-            pass
-        elif episode.get('class') == None:
-            pass
-        elif seasonInt == 'all':
-            # count all episodes for the given series
-            try:
-                epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
-                #Log(epNum)
-            except:
-                #Log('epNum not found')
-                continue
-            epStatus = episode.xpath('./td')[7].text
-            #Log(epStatus)
-            if epStatus == 'Skipped':
-                allEpisodes += 1
-            elif epStatus == 'Unaired':
-                allEpisodes += 1
-            elif epStatus == 'Wanted':
-                allEpisodes += 1
-            else:
-                allEpisodes += 1
-                haveEpisodes += 1
-        else:
-            # count all episode for the given season of the given series
-            try: epNum = episode.xpath('.//input[@type="checkbox"]')[0].get('id')
-            except: continue
-            try:
-                nextDigit=epNum[len(str(seasonInt))]
-                #Log('epNum = %s and seasonInt = %s' % (epNum, seasonInt))
-                #Log('nextDigit='+nextDigit)
-                #Log('Character at position %s is %s' % (len(str(seasonInt)), nextDigit))
-                if nextDigit in ['0','1','2','3','4','5','6','7','8','9']:
-                    #ignore season with more digits than what we're searching for
-                    #Log('ignore me')
-                    continue
-                else:
-                    #Log('Take a closer look')
-                    if str(epNum)[0:len(str(seasonInt))] == seasonInt:
-                        #Log('Count me')
-                        epNum = str(epNum)[(len(str(seasonInt))):]
-                        epStatus = episode.xpath('./td')[7].text
-                        #Log('Status: ' + epStatus)
-                        if epStatus == 'Skipped':
-                            allEpisodes += 1
-                        elif epStatus == 'Unaired':
-                            allEpisodes += 1
-                        elif epStatus == 'Wanted':
-                            allEpisodes += 1
-                        else:
-                            allEpisodes += 1
-                            haveEpisodes += 1
-            except:
-                continue
-
-        
-    epCount = str(haveEpisodes)+'/'+str(allEpisodes)
-    return epCount
+    downloaded = show['downloaded']['total']
+    total = show['total']
+    
+    episodes = "[%s / %s]" % (downloaded, total)
+    
+    return episodes
 
 ####################################################################################################
 
@@ -589,7 +531,7 @@ def UpdateSB(sender, link):
     except:
         pass
     restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
-    return MessageContainer(NAME, L('SickBeard update started.'))
+    return ObjectContainer(header=NAME, message=L('SickBeard update started.'))
     
 ####################################################################################################
 
@@ -603,8 +545,15 @@ def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
     url = Get_SB_URL() + '/config/general'
     page = HTML.ElementFromURL(url)
-    Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
-    return
+    api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
+    if api_key != '': ### Check this... it might be None rather than '' ###
+        Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
+        return True
+    else:
+        return ObjectContainer(header=NAME,
+            message="Failed to read API key from SickBeard's config page.\n" + 
+            "Please make sure that SickBeard is set to allow API access and has a key generated.\n" +
+            "Also, make sure to enter your SickBeard access details [IP, port, username, password ]in the plugin prefs.")
 
 ####################################################################################################
 
@@ -620,10 +569,26 @@ def API_Request(params=[], return_message=False):
     request_url = request_url.strip('&')
     '''send the request and confirm success'''
     data = JSON.ObjectFromURL(request_url)
+    
     if return_message:
         ObjectContainer(header=NAME, message=data['message'])
+    else:
+        pass
+    
     if data['result'] == "success":
         return data
+    #elif '''test for message stating API key is incorrect''':
+        #'''reset the API key in the plugin Dict[] in case the user generated a new key'''
+        #if Get_API_Key():
+        #    data = JSON.ObjectFromURL(request_url)
+        #    if return_message:
+        #        ObjectContainer(header=NAME, message=data['message'])
+        #    else:
+        #        pass
+        #    if data['result'] == "success":
+        #        return data
+        #    else:
+        #        return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     else:
         return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     
