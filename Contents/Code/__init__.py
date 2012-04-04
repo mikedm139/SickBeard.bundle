@@ -55,8 +55,8 @@ def MainMenu():
         summary="See details about all shows which SickBeard manages for you"))
     oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
         prompt="Search TVDB for...", thumb=R(ICON)))
-    #dir.Append(PrefsItem(title="Preferences",subtitle="SickBeard plugin prefs",
-    #    summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
+    oc.add(PrefsObject, title="Preferences",subtitle="SickBeard plugin prefs",
+        summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app", thumb=R(PREFS_ICON))
     
     
     #updateValues = CheckForUpdate()
