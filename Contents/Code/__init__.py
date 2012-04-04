@@ -432,7 +432,7 @@ def SeriesQuality(tvdbid, show):
 ####################################################################################################    
 
 def ApplyQualitySettings(tvdbid):
-    ### TODO >>> API_Requests and return message ###
+    '''send modified quality settings for the given series to SickBeard'''
     settings = []
     for key, value in Dict['Series']:
         if range(len(value)) > 1:
@@ -447,154 +447,14 @@ def ApplyQualitySettings(tvdbid):
     
 ####################################################################################################
 
-def CustomQualitiesMenu(sender, showID, showName):
-    '''allow selection of user defined quality settings'''
-    
-    dir = MediaContainer(viewGroup='InfoList', title2='Custom Quality for: '+showName)
-    
-    dir.Append(Function(DirectoryItem(InitialQualityMenu, title='Initial Download Quality',
-        summary="If I don't have the episode then tell SickBeard to download it in ONE of the selected qualities",
-        thumb=R(ICON)), showID=showID, showName=showName))
-    dir.Append(Function(DirectoryItem(ReplacementQualityMenu, title='Replacement Download Quality',
-        summary='Tell SickBeard to re-download the episodes in any or all of these qualities as they are available',
-        thumb=R(ICON)), showID=showID, showName=showName))
-    dir.Append(Function(DirectoryItem(ChangeSeriesQuality, title='Submit custom quality changes',
-        summary='Changes to custom quality settings will not be saved until you submit them by clicking here.',
-        thumb=R(ICON)), showID=showID, showName=showName, qualityPreset='Custom'))
-    
-    return dir
-
-####################################################################################################
-
-def InitialQualityMenu(sender, showID, showName):
-    '''Tell SickBeard which quality/qualities to download as soon as they are available'''
-    
-    dir = MediaContainer(viewGroup='InfoList', title2='Intial Quality: ' + showName, noCache=True)
-    
-    seriesPrefs = GetSeriesPrefs(showID)
-    anyQualities = seriesPrefs['anyQualities']
-    tempList = Dict['anyQualities']
-    #Log(tempList)
-    
-    try:
-        if anyQualities != tempList:
-            #Log('templist differs')
-            if tempList != []:
-                anyQualities = tempList
-    except:
-        #Log('Failed try!')
-        pass
-    
-    Dict['anyQualities'] = anyQualities
-    
-    #Log(anyQualities)
-    
-    if 1 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='SD TV', infoLabel='Selected', thumb=R(ICON)),
-            value=1, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='SD TV', thumb=R(ICON)), value=1, list='initial'))
-    if 2 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='SD DVD', infoLabel='Selected', thumb=R(ICON)),
-            value=2, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='SD DVD', thumb=R(ICON)), value=2, list='initial'))
-    if 4 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='HD TV', infoLabel='Selected', thumb=R(ICON)),
-            value=4, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='HD TV', thumb=R(ICON)), value=4, list='initial'))
-    if 8 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p WEB-DL', infoLabel='Selected', thumb=R(ICON)),
-            value=8, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='720p WEB-DL', thumb=R(ICON)), value=8, list='initial'))
-    if 16 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p BluRay', infoLabel='Selected', thumb=R(ICON)),
-            value=16, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='720p BluRay', thumb=R(ICON)), value=16, list='initial'))
-    if 32 in anyQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='1080p BluRay', infoLabel='Selected', thumb=R(ICON)),
-            value=32, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='1080p BluRay', thumb=R(ICON)), value=32, list='initial'))
-    
-    return dir
-
-####################################################################################################
-
-def ReplacementQualityMenu(sender, showID, showName):
-    '''Tell SickBeard to which quality/qualities to download as replacements for lower intial
-        quality downloads as they are available'''
-        
-    dir = MediaContainer(viewGroup='InfoList', title2='Replacement Quality: '+showName, noCache=True)
-    
-    seriesPrefs = GetSeriesPrefs(showID)
-    bestQualities = seriesPrefs['bestQualities']
-    tempList = Dict['anyQualities']
-    #Log(tempList)
-    
-    try:
-        if bestQualities != tempList:
-            #Log('templist differs')
-            if tempList != []:
-                bestQualities = tempList
-    except:
-        #Log('Failed try!')
-        pass
-    
-    Dict['bestQualities'] = bestQualities
-    
-    #Log(bestQualities)
-    
-    if 2 in bestQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='SD DVD', infoLabel='Selected', thumb=R(ICON)),
-            value=2, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='SD DVD', thumb=R(ICON)), value=2, list='initial'))
-    if 4 in bestQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='HD TV', infoLabel='Selected', thumb=R(ICON)),
-            value=4, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='HD TV', thumb=R(ICON)), value=4, list='initial'))
-    if 8 in bestQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p WEB-DL', infoLabel='Selected', thumb=R(ICON)),
-            value=8, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='720p WEB-DL', thumb=R(ICON)), value=8, list='initial'))
-    if 16 in bestQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='720p BluRay', infoLabel='Selected', thumb=R(ICON)),
-            value=16, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='720p BluRay', thumb=R(ICON)), value=16, list='initial'))
-    if 32 in bestQualities:
-        dir.Append(Function(DirectoryItem(RemoveFromList, title='1080p BluRay', infoLabel='Selected', thumb=R(ICON)),
-            value=32, list='initial'))
-    else:
-        dir.Append(Function(DirectoryItem(AddToList, title='1080p BluRay', thumb=R(ICON)), value=32, list='initial'))
-    
-    return dir
-
-####################################################################################################
-
-def EpisodeRefresh(sender, url="", showID="", seasonNum="", episodeNum=""):
+def EpisodeRefresh(tvdbid, season, episode):
     '''tell SickBeard to do a force search for the given episode'''
-    if url != "":
-        updateUrl = Get_SB_URL() + url
-        #Log(updateUrl)
-    elif showID != "":
-        updateUrl = Get_SB_URL() + '/home/searchEpisode?show='+showID+'&season='+seasonNum+'&episode='+episodeNum
-    else:
-        return MessageContainer('SickBeard Plugin', L('Episode never aired. Cannot force search.'))
     
-    try:
-        updating = HTTP.Request(updateUrl, errors='ignore', headers=AuthHeader()).content
-        #Log(updating)
-        return MessageContainer('SickBeard Plugin', L('Force search started'))
-    except:
-        return MessageContainer('SickBeard Plugin', L('Error - unable force search'))
-
+    message = API_Request([{"key":"cmd","value":"episode.search"},{"key":"tvdbid","value":tvdbid},
+        {"key":"season","value":season},{"key":"episode","value":episode}])['message']
+    
+    return ObjectContainer(header=NAME, message=message)
+        
 ####################################################################################################
 
 def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
