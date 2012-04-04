@@ -18,11 +18,9 @@
     <string>1.0</string>
     <key>PlexPluginMode</key>
     <string>AlwaysOn</string>
-    <key>PlexPluginConsoleLogging</key>
-    <string>0</string>
     <key>PlexPluginCodePolicy</key>
     <string>Elevated</string>
     <key>PlexClientPlatforms</key>
-    <string>MacOSX,iOS</string>
+    <string>*</string>
   </dict>
 </plist>
