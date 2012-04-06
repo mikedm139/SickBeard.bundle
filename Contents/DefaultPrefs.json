@@ -25,6 +25,12 @@
         "default": "8081" 
     },
     {
+        "id": "https",
+        "label": "Use HTTPS",
+        "type": "bool",
+        "default": "False" 
+    },
+    {
         "id": "TVDBlang",
         "label": "TVDB Language",
         "type": "enum",

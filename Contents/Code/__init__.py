@@ -1,6 +1,5 @@
 ''' TODO:
         - add/test support for "webroot"                            [ ]
-        - add/test support for "https"                              [ ]
         '''
 
 
@@ -49,17 +48,18 @@ def AuthHeader():
 def MainMenu():
     oc = ObjectContainer(view_group="InfoList")
     
-    oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
-        summary="See which shows that you follow have episodes airing soon"))
-    oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
-        summary="See details about all shows which SickBeard manages for you"))
-    oc.add(InputDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
-        prompt="Search TVDB for...", thumb=R(ICON)))
-    if not Get_API_Key():
-        oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
-            thumb=R(PREFS_ICON)))
-    else:
+    try:
+        Get_API_Key()
+        oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
+            summary="See which shows that you follow have episodes airing soon"))
+        oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
+            summary="See details about all shows which SickBeard manages for you"))
+        oc.add(InputDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
+            prompt="Search TVDB for...", thumb=R(ICON)))
         oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",
+            thumb=R(PREFS_ICON)))
+    except:
+        oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
     
     #updateValues = CheckForUpdate()
@@ -69,6 +69,11 @@ def MainMenu():
     #        ' SickBeard after updating.', thumb=R(ICON)), link = updateValues['link']))
 
     return oc
+
+####################################################################################################
+
+def ValidatePrefs():
+    return ObjectContainer(header=NAME, message="Please restart your Plex client for pref changes to take effect.")
 
 ####################################################################################################
 
@@ -510,12 +515,10 @@ def GetEpisodes(tvdbid):
 ####################################################################################################
 
 def Get_SB_URL():
-    return 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
-    
-####################################################################################################
-
-def Get_PMS_URL():
-    return 'http://'+Prefs['plexIP']+':32400'
+    if Prefs['https']:
+        return 'https://'+Prefs['sbIP']+':'+Prefs['sbPort']
+    else:
+        return 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
     
 ####################################################################################################
 #
@@ -547,7 +550,7 @@ def Get_PMS_URL():
 
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
-    return 'http://%s:%s/api/%s/?' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
+    return Get_SB_URL() + '/api/%s/?' % Dict['SB_API_Key']
 
 ####################################################################################################
 
