@@ -1,7 +1,7 @@
 ''' TODO:
-        - test/flesh out API_key error handling in API_Request()
-        - add/test support for "webroot"
-        - add/test support for "https"
+        - test/flesh out API_key error handling in API_Request()    [x]
+        - add/test support for "webroot"                            [ ]
+        - add/test support for "https"                              [ ]
         '''
 
 
@@ -54,10 +54,14 @@ def MainMenu():
         summary="See which shows that you follow have episodes airing soon"))
     oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
         summary="See details about all shows which SickBeard manages for you"))
-    oc.add(SearchDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
+    oc.add(InputDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
         prompt="Search TVDB for...", thumb=R(ICON)))
-    oc.add(PrefsObject, title="Preferences",subtitle="SickBeard plugin prefs",
-        summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app", thumb=R(PREFS_ICON))
+    if not Get_API_Key():
+        oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
+            thumb=R(PREFS_ICON)))
+    else:
+        oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",
+            thumb=R(PREFS_ICON)))
     
     #updateValues = CheckForUpdate()
     #if updateValues['available']:
@@ -90,9 +94,12 @@ def ComingEpisodes(timeframe=""):
     
     oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
     
-    coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])
+    coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])['data'][timeframe]
     
-    for episode in coming_Eps['data'][timeframe]:
+    if len(coming_Eps) == 0:
+        return ObjectContainer(header=NAME, message="No episodes found.")
+    
+    for episode in coming_Eps:
         title = FutureEpisodeTitle(episode)
         summary = FutureEpisodeSummary(episode)
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
@@ -127,7 +134,7 @@ def ShowList():
     shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
     
     for (key, value) in shows.items():
-        tvdbid = key
+        show_name = key
         show = value
         
         if show['paused']:
@@ -135,14 +142,17 @@ def ShowList():
         else:
             paused = "False"
         
+        tvdbid = show['tvdbid']
         episodes = GetEpisodes(tvdbid)
-        title = "%s   %s" % (show['show_name'], episodes)
+        title = "%s   %s" % (show_name, episodes)
         summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
             
         oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid, show=title), title=title, summary=summary,
-            thumb=Callback(GetThumb, tvdbid=episode['tvdbid'])))
-        
+            thumb=Callback(GetThumb, tvdbid=tvdbid)))
+    
+    oc.objects.sort(key = lambda obj: obj.title)    
+    
     return oc
     
 ####################################################################################################
@@ -167,8 +177,9 @@ def EpisodePopup(episode={}, tvdbid=None, season=None):
     else:
         pass
     
-    oc.add(DirectoryObject(key=Callback(EpisodeRefresh, episode=episode), title="Force search for this episode"))
-    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+    oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=episode['tvdbid'], season=episode['season'], episode=episode['episode']),
+        title="Force search for this episode"))
+    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=episode['tvdbid'], season=episode['season'],
             episode=episode['episode'], status=status),title="Mark this episode as '%s'" % string.capitalize(status)))
     
@@ -236,11 +247,11 @@ def CustomAddShow(tvdbid):
 ####################################################################################################
 
 def GetQualityDefaults(group="", tvdbid=None):
-    if group = "DefaultSettings":
+    if group == "DefaultSettings":
         settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
         Dict[group]['lang'] = Prefs['TVDBLang']
     else:
-        settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid":tvdbid}])
+        settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid", "value":tvdbid}])
     for key, value in settings['data']:
         Dict[group][key] = value
     
@@ -254,9 +265,9 @@ def GetSickBeardRootDirs():
 
 ####################################################################################################
 
-def QualitySetting(group="", category):
+def QualitySetting(group, category):
     oc = ObjectContainer(title2="%s Quality" % string.capitalize(category), no_cache=True)
-    for quality in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data'][category]['allowedValues']:
+    for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data'][category]['allowedValues']:
         if quality in Dict[group][category]:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "[*] %s" % quality))
         else:
@@ -281,7 +292,7 @@ def ChangeQualities(group, quality, category, action):
 
 def LanguageSetting():
     oc = ObjectContainer(title2="tvdb Language", no_cache=True)
-    for lang in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['lang']['allowedValues']:
+    for lang in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['lang']['allowedValues']:
         if lang in Dict['DefaultSettings']['lang']:
             oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "[*] %s" % lang))
         else:
@@ -302,7 +313,7 @@ def ChangeLanguage(lang, value):
 
 def StatusSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
         if status in Dict['DefaultSettings']['status']:
             oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "[*] %s" % status))
         else:
@@ -323,7 +334,7 @@ def ChangeStatus(status, value):
 
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for option in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['season_folder']['allowedValues']:
+    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['season_folder']['allowedValues']:
         if option:
             label = "Yes"
         else:
@@ -351,7 +362,7 @@ def SeasonList(tvdbid, show):
     oc = ObjectContainer(title1=show, title2="Seasons")
     seasons = API_Request([{"key":"cmd","value":"show.seasonlist"},{"key":"tvdbid","value":tvdbid}])['data']
     for season in seasons:
-        oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid),
+        oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid, show=show),
             title="Season %s" % season, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
     return oc
@@ -364,7 +375,7 @@ def SeasonPopup(tvdbid, season, show):
     
     oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season, show=show), title="View Episode List"))
     
-    for status in API_Request([{"key":"cmd", "value":"sb.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
             title="Mark all episodes as '%s'" % string.capitalize(status)))
     
@@ -402,13 +413,13 @@ def EditSeries(tvdbid):
         return_message=True), title='Delete Series', summary="Delete a show from SickBeard", thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
     if not show['paused']:
-        oc.add(DirectoryObject(key=Callback(API_Request, [{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
+        oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
             {"key":"pause","value":"1"}], return_message=True), title='Pause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
     else:
-        oc.add(DirectoryObject(key=Callback(API_Request, [{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
+        oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.pause"},{"key":"tvdbid","value":tvdbid},
             {"key":"pause","value":"0"}], return_message=True), title='Unpause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
-    oc.add(DirectoryObject(key=Callback(SeriesQuality, tvdbid=tvdbid, show=show['show_name']), title="Download Quality: [%s]", % show['quality'],
+    oc.add(DirectoryObject(key=Callback(SeriesQuality, tvdbid=tvdbid, show=show['show_name']), title="Download Quality: [%s]" % show['quality'],
         summary="Initial: %s \nArchive: %s" % (show['quality_details']['initial'],show['quality_details']['archive']), thumb=Callback(GetThumb, tvdbid=tvdbid)))
         
     return oc
@@ -461,8 +472,8 @@ def EpisodeRefresh(tvdbid, season, episode):
 def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
     '''tell SickBeard to do mark the given episode(s) with the given status'''
     
-    message = API_request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
-        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])[data]
+    message = API_Request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
+        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])['message']
     
     if entire_season:
         return True
@@ -488,7 +499,7 @@ def SetSeasonStatus(tvdbid, season, status):
 def GetEpisodes(tvdbid):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
         for the given series'''
-    show = API_RequestAPI_Request([{'key':'cmd','value':'show.stats'},{'key':'tvdbid','value':tvdbid},[data]
+    show = API_Request([{'key':'cmd','value':'show.stats'},{'key':'tvdbid','value':tvdbid}])['data']
     
     downloaded = show['downloaded']['total']
     total = show['total']
@@ -538,22 +549,20 @@ def Get_PMS_URL():
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
     return 'http://%s:%s/api/%s/?' % (Prefs['sbIP'], Prefs['sbPort'], Dict['SB_API_Key'])
-    
+
 ####################################################################################################
 
 def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
     url = Get_SB_URL() + '/config/general'
-    page = HTML.ElementFromURL(url)
+    page = HTML.ElementFromURL(url, cacheTime=0)
     api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
+    Log(api_key)
     if api_key != '': ### Check this... it might be None rather than '' ###
         Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
         return True
     else:
-        return ObjectContainer(header=NAME,
-            message="Failed to read API key from SickBeard's config page.\n" + 
-            "Please make sure that SickBeard is set to allow API access and has a key generated.\n" +
-            "Also, make sure to enter your SickBeard access details [IP, port, username, password ]in the plugin prefs.")
+        return False
 
 ####################################################################################################
 
@@ -561,34 +570,38 @@ def API_Request(params=[], return_message=False):
     '''use the given args to make an API request and return the JSON'''
     
     '''start with the base API url'''
-    request_url = API_URL
+    request_url = API_URL()
     '''build the request rl with the given parameters'''
-    for i in len(params):
-        request_url = request_url + params[i-1]['key'] + '=' + params[i-1]['value'] + '&'
+    if len(params) > 1:
+        for i in range(len(params)):
+            request_url = request_url + "%s=%s&" % (params[i]['key'], params[i]['value'])
+    else:
+        request_url = request_url + "%s=%s" % (params[0]['key'], params[0]['value'])
     '''strip the trailing "&" from the request_url'''
     request_url = request_url.strip('&')
     '''send the request and confirm success'''
-    data = JSON.ObjectFromURL(request_url)
+    data = JSON.ObjectFromURL(request_url, timeout=30, cacheTime=0)
+    Log(data)
     
     if return_message:
         ObjectContainer(header=NAME, message=data['message'])
     else:
         pass
     
-    if data['result'] == "success":
+    if data['result'] == "denied":
+        '''reset the API key in the plugin Dict[] in case the user generated a new key'''
+        if Get_API_Key():
+            data = JSON.ObjectFromURL(request_url)
+            if return_message:
+                ObjectContainer(header=NAME, message=data['message'])
+            else:
+                pass
+            if data['result'] == "success":
+                return data
+            else:
+                return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
+    elif data['result'] == 'success' or 'failure':
         return data
-    #elif '''test for message stating API key is incorrect''':
-        #'''reset the API key in the plugin Dict[] in case the user generated a new key'''
-        #if Get_API_Key():
-        #    data = JSON.ObjectFromURL(request_url)
-        #    if return_message:
-        #        ObjectContainer(header=NAME, message=data['message'])
-        #    else:
-        #        pass
-        #    if data['result'] == "success":
-        #        return data
-        #    else:
-        #        return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     else:
         return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     
@@ -615,6 +628,6 @@ def FutureEpisodeSummary(episode={}):
 ####################################################################################################
 
 def GetThumb(tvdbid):
-    thumb_url = API_URL + "cmd=show.getposter&tvdbid=%s" % tvdbid
+    thumb_url = API_URL() + "cmd=show.getposter&tvdbid=%s" % tvdbid
     data = HTTP.Request(thumb_url).content
     return DataObject(data, 'image/jpeg')
