@@ -1,5 +1,4 @@
 ''' TODO:
-        - test/flesh out API_key error handling in API_Request()    [x]
         - add/test support for "webroot"                            [ ]
         - add/test support for "https"                              [ ]
         '''
@@ -171,17 +170,19 @@ def SeriesPopup(tvdbid, show):
 def EpisodePopup(episode={}, tvdbid=None, season=None):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     oc = ObjectContainer()
-    if tvdbid:
+    if not season:
         episode = API_Request([{'key':'cmd','value':'episode'},{'key':'tvdbid','value':tvdbid},
-            {'key':'season','value':season},{'key':'episode','value':episode}])[data]
+            {'key':'season','value':season},{'key':'episode','value':episode}])['data']
+        season=episode['season']
+        episode=episode['episode']
     else:
         pass
     
-    oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=episode['tvdbid'], season=episode['season'], episode=episode['episode']),
+    oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=tvdbid, season=season, episode=episode),
         title="Force search for this episode"))
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
-        oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=episode['tvdbid'], season=episode['season'],
-            episode=episode['episode'], status=status),title="Mark this episode as '%s'" % string.capitalize(status)))
+        oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=tvdbid, season=season,
+            episode=episode, status=status),title="Mark this episode as '%s'" % string.capitalize(status)))
     
     return oc
 
@@ -192,8 +193,8 @@ def AddShowMenu(show={}):
     
     oc = ObjectContainer()
     
-    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=result['tvdbid']), title="Add with default settings"))
-    oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbid=result['tvdbid']), title="Add with custom settings"))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=show['tvdbid']), title="Add with default settings"))
+    oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbid=show['tvdbid']), title="Add with custom settings"))
     
     return oc
     
@@ -203,14 +204,12 @@ def AddShow(tvdbid, settings=[]):
     '''add the given show to the SickBeard database with the given settings,
         or use SickBeard's default settings if settings == []'''
     
-    params = [{"key":"cmd", "value":"show.addnew"}]
+    params = [{"key":"cmd", "value":"show.addnew"},{"key":"tvdbid","value":tvdbid}]
     for param in settings:
         params.append(param)
         
-    message = API_Request(params)
+    return API_Request(params, return_message=True)
 
-    return ObjectContainer(header=NAME, message=message)
-    
 ####################################################################################################
 
 def CustomAddShow(tvdbid):
@@ -223,8 +222,8 @@ def CustomAddShow(tvdbid):
     GetSickBeardRootDirs()
     
     '''Offer separate menu options for each default setting'''
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=Dict['DefaultSettings']['initial']))
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=Dict['DefaultSettings']['archive']))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=str(Dict['DefaultSettings']['initial'])))
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=str(Dict['DefaultSettings']['archive'])))
     oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     if Dict['DefaultSettings']['season_folders'] == 1:
@@ -234,7 +233,7 @@ def CustomAddShow(tvdbid):
     oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Use season Folders [%s]" % season_folders))
     
     settings = []
-    for key, value in Dict['DefaultSettings']:
+    for key, value in Dict['DefaultSettings'].iteritems():
         if range(len(value)) > 1:
             settings.append({'key':key,'value':'|'.join(value)})
         else:
@@ -252,7 +251,9 @@ def GetQualityDefaults(group="", tvdbid=None):
         Dict[group]['lang'] = Prefs['TVDBLang']
     else:
         settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid", "value":tvdbid}])
-    for key, value in settings['data']:
+        Dict[group] = {}
+    
+    for key, value in settings['data'].iteritems():
         Dict[group][key] = value
     
     return
@@ -267,11 +268,11 @@ def GetSickBeardRootDirs():
 
 def QualitySetting(group, category):
     oc = ObjectContainer(title2="%s Quality" % string.capitalize(category), no_cache=True)
-    for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data'][category]['allowedValues']:
+    for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters'][category]['allowedValues']:
         if quality in Dict[group][category]:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "[*] %s" % quality))
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "%s [*]" % quality))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="add"), title = "[ ] %s" % quality))
+            oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="add"), title = "%s [ ]" % quality))
     return oc
 
 ####################################################################################################
@@ -292,11 +293,11 @@ def ChangeQualities(group, quality, category, action):
 
 def LanguageSetting():
     oc = ObjectContainer(title2="tvdb Language", no_cache=True)
-    for lang in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['lang']['allowedValues']:
+    for lang in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['lang']['allowedValues']:
         if lang in Dict['DefaultSettings']['lang']:
-            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "[*] %s" % lang))
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "%s [*]" % lang))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="False"), title = "[ ] %s" % lang))
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="False"), title = "%s [ ]" % lang))
     return oc
     
 ####################################################################################################
@@ -313,11 +314,11 @@ def ChangeLanguage(lang, value):
 
 def StatusSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         if status in Dict['DefaultSettings']['status']:
-            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "[*] %s" % status))
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "%s [*]" % status))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="False"), title = "[ ] %s" % status))
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="False"), title = "%s [ ]" % status))
     return oc
 
 ####################################################################################################
@@ -334,15 +335,15 @@ def ChangeStatus(status, value):
 
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['season_folder']['allowedValues']:
+    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParamaters']['season_folder']['allowedValues']:
         if option:
             label = "Yes"
         else:
             label = "No"
         if option in Dict['DefaultSettings']['season_folder']:
-            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "[*] %s" % label))
+            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [*]" % label))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "[ ] %s" % label))
+            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [ ]" % label))
     return oc
     
 ####################################################################################################
@@ -375,7 +376,7 @@ def SeasonPopup(tvdbid, season, show):
     
     oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season, show=show), title="View Episode List"))
     
-    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['status']['allowedValues']:
+    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
             title="Mark all episodes as '%s'" % string.capitalize(status)))
     
@@ -388,9 +389,9 @@ def EpisodeList(tvdbid, season, show):
     oc = ObjectContainer(title1=show, title2="Season %s" % season)
     episodes = API_Request([{"key":"cmd","value":"show.seasons"},{"key":"tvdbid","value":tvdbid},
         {"key":"season","value":season}])['data']
-    for key, value in episodes:
+    for key, value in episodes.iteritems():
         summary = "Airdate: %s\nQuality: %s\nStatus: %s" % (value['airdate'], value['quality'], value['status'])
-        oc.add(PopupObjectDirectory(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
+        oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
             title=value['name'], summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
     return oc
@@ -445,27 +446,25 @@ def SeriesQuality(tvdbid, show):
 
 def ApplyQualitySettings(tvdbid):
     '''send modified quality settings for the given series to SickBeard'''
-    settings = []
-    for key, value in Dict['Series']:
+    settings = {}
+    for key, value in Dict['Series'].iteritems():
         if range(len(value)) > 1:
-            settings.append({'key':key,'value':'|'.join(value)})
+            settings[key] = '|'.join(value)
         else:
-            settings.append({'key':key,'value':value})
+            settings[key] = value
     
-    message = API_Request([{"key":"cmd","value":"show.setquality"},{"key":"tvdbid","value":tvdbid},
-        {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}])['message']
+    Log(settings)
     
-    return ObjectContainer(header=NAME, message=message)
+    return API_Request([{"key":"cmd","value":"show.setquality"},{"key":"tvdbid","value":tvdbid},
+        {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}], return_message=True)
     
 ####################################################################################################
 
 def EpisodeRefresh(tvdbid, season, episode):
     '''tell SickBeard to do a force search for the given episode'''
     
-    message = API_Request([{"key":"cmd","value":"episode.search"},{"key":"tvdbid","value":tvdbid},
-        {"key":"season","value":season},{"key":"episode","value":episode}])['message']
-    
-    return ObjectContainer(header=NAME, message=message)
+    return API_Request([{"key":"cmd","value":"episode.search"},{"key":"tvdbid","value":tvdbid},
+        {"key":"season","value":season},{"key":"episode","value":episode}], return_message=True)
         
 ####################################################################################################
 
@@ -487,9 +486,9 @@ def SetSeasonStatus(tvdbid, season, status):
     
     count = 0
     episodes = API_Request([{'key':'cmd','value':'show.seasons'},{'key':'tvdbid','value':tvdbid},
-        {'key':'season','value':season}])[data]
-    for key, value in episodes:
-        if SetEpisode(tvdbid, season, episode=key, status=status, entire_season=True):
+        {'key':'season','value':season}])['data']
+    for key, value in episodes.iteritems():
+        if SetEpisodeStatus(tvdbid, season, episode=key, status=status, entire_season=True):
             count = count +1
     
     return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, string.capitalize(status)))
@@ -584,7 +583,7 @@ def API_Request(params=[], return_message=False):
     Log(data)
     
     if return_message:
-        ObjectContainer(header=NAME, message=data['message'])
+        return ObjectContainer(header=NAME, message=data['message'])
     else:
         pass
     
