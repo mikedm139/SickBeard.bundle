@@ -1,3 +1,9 @@
+''' TODO:
+        - test/flesh out API_key error handling in API_Request()
+        - add/test support for "webroot"
+        - add/test support for "https"
+        '''
+
 
 import re, os, subprocess, string
 from base64 import b64encode
