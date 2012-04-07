@@ -4,7 +4,7 @@ from base64 import b64encode
 
 ####################################################################################################
 
-APPLICATION_PREFIX = "/applications/sickbeard"
+PREFIX = "/video/sickbeard"
 
 NAME = 'SickBeard'
 
@@ -17,7 +17,7 @@ PREFS_ICON  = 'icon-prefs.png'
 
 def Start():
     
-    Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
+    Plugin.AddPrefixHandler(PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
 
