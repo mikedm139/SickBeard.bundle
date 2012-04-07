@@ -1,6 +1,7 @@
-''' TODO:
-        - add/test support for "webroot"                            [ ]
-        '''
+####################################################################################################
+#   TODO:
+#       - add/test support for "webroot" [ ]
+####################################################################################################
 
 
 import re, os, subprocess, string
@@ -24,10 +25,10 @@ def Start():
     Plugin.AddPrefixHandler(APPLICATION_PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-    Plugin.AddViewGroup("List", viewMode="List", mediaType="items")
 
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
+    ObjectContainer.view_group = "InfoList"
     DirectoryObject.thumb = R(ICON)
     PopupDirectoryObject.thumb = R(ICON)
     HTTP.CacheTime=3600*3
@@ -46,7 +47,7 @@ def AuthHeader():
 ####################################################################################################
 
 def MainMenu():
-    oc = ObjectContainer(view_group="InfoList")
+    oc = ObjectContainer()
     
     try:
         Get_API_Key()
@@ -115,7 +116,7 @@ def ComingEpisodes(timeframe=""):
 
 def Search(query):
     
-    oc = ObjectContainer(view_group="InfoList", title2="TVDB Results", no_cache=True)
+    oc = ObjectContainer(title2="TVDB Results", no_cache=True)
     
     search_results = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
     
@@ -133,7 +134,7 @@ def Search(query):
 def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
     
-    oc = ObjectContainer(view_group="InfoList", title2="All Shows", no_cache=True)
+    oc = ObjectContainer(title2="All Shows", no_cache=True)
     
     shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
     
@@ -458,8 +459,6 @@ def ApplyQualitySettings(tvdbid):
         else:
             settings[key] = value
     
-    Log(settings)
-    
     return API_Request([{"key":"cmd","value":"show.setquality"},{"key":"tvdbid","value":tvdbid},
         {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}], return_message=True)
     
@@ -515,10 +514,18 @@ def GetEpisodes(tvdbid):
 ####################################################################################################
 
 def Get_SB_URL():
-    if Prefs['https']:
-        return 'https://'+Prefs['sbIP']+':'+Prefs['sbPort']
+    webroot = Prefs['webroot']
+    if webroot != '':
+        if webroot[0] == '/':
+            pass
+        else:
+            webroot = '/'+webroot
     else:
-        return 'http://'+Prefs['sbIP']+':'+Prefs['sbPort']
+        pass
+    if Prefs['https']:
+        return 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+    else:
+        return 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
     
 ####################################################################################################
 #
@@ -559,7 +566,6 @@ def Get_API_Key():
     url = Get_SB_URL() + '/config/general'
     page = HTML.ElementFromURL(url, cacheTime=0)
     api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
-    Log(api_key)
     if api_key != '': ### Check this... it might be None rather than '' ###
         Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
         return True
@@ -583,7 +589,6 @@ def API_Request(params=[], return_message=False):
     request_url = request_url.strip('&')
     '''send the request and confirm success'''
     data = JSON.ObjectFromURL(request_url, timeout=30, cacheTime=0)
-    Log(data)
     
     if return_message:
         return ObjectContainer(header=NAME, message=data['message'])

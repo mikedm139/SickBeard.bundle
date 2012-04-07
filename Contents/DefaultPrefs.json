@@ -25,6 +25,12 @@
         "default": "8081" 
     },
     {
+        "id": "webroot",
+        "label": "Webroot",
+        "type": "text",
+        "default": "" 
+    },
+    {
         "id": "https",
         "label": "Use HTTPS",
         "type": "bool",
