@@ -560,9 +560,14 @@ def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
     url = Get_SB_URL() + '/config/general'
     page = HTML.ElementFromURL(url, cacheTime=0)
-    api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
+    try:
+        api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
+        Log("API key found.")
+    except:
+        Log("Unable to retrieve API key from SickBeard.")
+        return False
     if api_key != '': ### Check this... it might be None rather than '' ###
-        Dict['SB_API_Key'] = page.xpath('//input[@name="api_key"]')[0].get('value')
+        Dict['SB_API_Key'] = api_key
         return True
     else:
         return False
