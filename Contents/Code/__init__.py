@@ -44,8 +44,16 @@ def AuthHeader():
 def MainMenu():
     oc = ObjectContainer()
     
-    try:
-        Get_API_Key()
+    API_KEY = False
+    if Dict['SB_API_Key']:
+        API_KEY = True
+    else:
+        try:
+            API_KEY = Get_API_Key()
+        except:
+            pass
+    
+    if API_KEY:
         oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
             summary="See which shows that you follow have episodes airing soon"))
         oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
@@ -54,7 +62,7 @@ def MainMenu():
             prompt="Search TVDB for...", thumb=R(ICON)))
         oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
-    except:
+    else:
         oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
     
@@ -510,13 +518,13 @@ def GetEpisodes(tvdbid):
 
 def Get_SB_URL():
     webroot = Prefs['webroot']
-    if webroot != '':
+    if webroot:
         if webroot[0] == '/':
             pass
         else:
             webroot = '/'+webroot
     else:
-        pass
+        webroot = ''
     if Prefs['https']:
         return 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
     else:
@@ -568,8 +576,11 @@ def Get_API_Key():
         return False
     if api_key != '': ### Check this... it might be None rather than '' ###
         Dict['SB_API_Key'] = api_key
+        Dict.Save()
+        Log("Saving API Key.")
         return True
     else:
+        Log("API key is no good.")
         return False
 
 ####################################################################################################
