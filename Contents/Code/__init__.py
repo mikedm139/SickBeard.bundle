@@ -567,7 +567,7 @@ def API_URL():
 def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
     url = Get_SB_URL() + '/config/general'
-    page = HTML.ElementFromURL(url, headers=AuthHeader() cacheTime=0)
+    page = HTML.ElementFromURL(url, headers=AuthHeader(), cacheTime=0)
     try:
         api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
         Log("API key found.")
