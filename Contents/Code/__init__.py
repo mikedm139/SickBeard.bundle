@@ -257,7 +257,7 @@ def CustomAddShow(tvdbid):
 def GetQualityDefaults(group="", tvdbid=None):
     if group == "DefaultSettings":
         settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
-        Dict[group]['lang'] = Prefs['TVDBLang']
+        Dict[group]['lang'] = Prefs['TVDBlang']
     else:
         settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":"tvdbid", "value":tvdbid}])
         Dict[group] = {}
