@@ -209,13 +209,17 @@ def AddShowMenu(show={}):
     
 ####################################################################################################
 
-def AddShow(tvdbid, settings=[]):
-    '''add the given show to the SickBeard database with the given settings,
-        or use SickBeard's default settings if settings == []'''
+def AddShow(tvdbid, useCustomSettings=False):
+    '''add the given show to the SickBeard database with the SickBeard's default settings,
+        or with custom settings'''
     
     params = [{"key":"cmd", "value":"show.addnew"},{"key":"tvdbid","value":tvdbid}]
-    for param in settings:
-        params.append(param)
+    if useCustomSettings:
+        for key, value in Dict['DefaultSettings'].iteritems():
+            if key in ['lang','location','season_folders','status','future_show_paused']:
+                params.append({'key':key,'value':value}) 
+            else:
+                params.append({'key':key,'value':'|'.join(value)})
         
     return API_Request(params, return_message=True)
 
@@ -225,7 +229,7 @@ def CustomAddShow(tvdbid):
     '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
         modifications before adding a show with custom settings'''
     
-    oc = MediaContainer(title2="Add Show Settings...", no_cache=True)
+    oc = ObjectContainer(title2="Add Show Settings...", no_cache=True)
     
     GetQualityDefaults(group="DefaultSettings")
     GetSickBeardRootDirs()
@@ -240,21 +244,16 @@ def CustomAddShow(tvdbid):
     else:
         season_folders = "No"
     oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Use season Folders [%s]" % season_folders))
-    
-    settings = []
-    for key, value in Dict['DefaultSettings'].iteritems():
-        if range(len(value)) > 1:
-            settings.append({'key':key,'value':'|'.join(value)})
-        else:
-            settings.append({'key':key,'value':value})
             
-    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, settings=settings), title="Add show with these settings"))
+    oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, useCustomSettings=True), title="Add show with these settings"))
     
     return oc
 
 ####################################################################################################
 
 def GetQualityDefaults(group="", tvdbid=None):
+    if not Dict[group]:
+        Dict[group] = {}
     if group == "DefaultSettings":
         settings = API_Request([{"key":"cmd", "value":"sb.getdefaults"}])
         Dict[group]['lang'] = Prefs['TVDBlang']
@@ -344,14 +343,18 @@ def ChangeStatus(status, value):
 
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParamaters']['season_folder']['allowedValues']:
+    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['season_folder']['allowedValues']:
+        Log(option)
         if option:
             label = "Yes"
         else:
             label = "No"
-        if option in Dict['DefaultSettings']['season_folder']:
-            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [*]" % label))
-        else:
+        try:
+            if option in Dict['DefaultSettings']['season_folder']:
+                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [*]" % label))
+            else:
+                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [ ]" % label))
+        except:
             oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [ ]" % label))
     return oc
     
