@@ -216,8 +216,8 @@ def AddShow(tvdbid, useCustomSettings=False):
     params = [{"key":"cmd", "value":"show.addnew"},{"key":"tvdbid","value":tvdbid}]
     if useCustomSettings:
         for key, value in Dict['DefaultSettings'].iteritems():
-            if key in ['lang','location','season_folders','status','future_show_paused']:
-                params.append({'key':key,'value':value}) 
+            if key in ['lang','location','season_folders','status','future_show_paused','location']:
+                params.append({'key':key,'value':value})
             else:
                 params.append({'key':key,'value':'|'.join(value)})
         
@@ -239,6 +239,7 @@ def CustomAddShow(tvdbid):
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=str(Dict['DefaultSettings']['archive'])))
     oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
+    oc.add(PopupDirectoryObject(key=Callback(RootDirSetting), title="Root Directory"))
     if Dict['DefaultSettings']['season_folders'] == 1:
         season_folders = "Yes"
     else:
@@ -270,6 +271,29 @@ def GetQualityDefaults(group="", tvdbid=None):
 
 def GetSickBeardRootDirs():
     Dict['RootDirs'] = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])['data']
+    for dir in Dict['RootDirs']:
+        if dir["default"]:
+            Dict["DefaultSettings"]["location"] = dir['location']
+            Dict.Save()
+    return
+
+####################################################################################################
+
+def RootDirSetting():
+    oc = ObjectContainer()
+    for dir in Dict['RootDirs']:
+        if dir["valid"]:
+            if dir["location"] == Dict["DefaultSettings"]["location"]:
+                oc.add(DirectoryObject(key=Callback(SetRootDir, location=dir['location']), title="%s [*]" % dir['location']))
+            else:
+                oc.add(DirectoryObject(key=Callback(SetRootDir, location=dir['location']), title="%s [ ]" % dir['location']))
+    return oc
+
+####################################################################################################
+
+def SetRootDir(location):
+    Dict["DefaultSettings"]["location"] = location
+    Dict.Save()
     return
 
 ####################################################################################################
@@ -303,9 +327,10 @@ def LanguageSetting():
     oc = ObjectContainer(title2="tvdb Language", no_cache=True)
     for lang in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['lang']['allowedValues']:
         if lang in Dict['DefaultSettings']['lang']:
-            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "%s [*]" % lang))
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="False"), title = "%s [*]" % lang))
+            Dict['DefaultSettings']['lang'] = lang
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="False"), title = "%s [ ]" % lang))
+            oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "%s [ ]" % lang))
     return oc
     
 ####################################################################################################
@@ -324,9 +349,9 @@ def StatusSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         if status in Dict['DefaultSettings']['status']:
-            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "%s [*]" % status))
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="False"), title = "%s [*]" % status))
         else:
-            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="False"), title = "%s [ ]" % status))
+            oc.add(DirectoryObject(key=Callback(ChangeStatus, status=status, value="True"), title = "%s [ ]" % status))
     return oc
 
 ####################################################################################################
@@ -344,18 +369,17 @@ def ChangeStatus(status, value):
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
     for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['season_folder']['allowedValues']:
-        Log(option)
         if option:
             label = "Yes"
         else:
             label = "No"
         try:
             if option in Dict['DefaultSettings']['season_folder']:
-                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [*]" % label))
+                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [*]" % label))
             else:
-                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [ ]" % label))
+                oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [ ]" % label))
         except:
-            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [ ]" % label))
+            oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [ ]" % label))
     return oc
     
 ####################################################################################################
