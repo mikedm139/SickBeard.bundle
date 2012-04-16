@@ -77,6 +77,8 @@ def MainMenu():
 ####################################################################################################
 
 def ValidatePrefs():
+    Log("Storing SickBeard URL for future reference: %s" Get_SB_URL(reset=True))
+    Log("Storing SickBeard API Key for future reference: %s" Get_API_Key())
     return ObjectContainer(header=NAME, message="Please restart your Plex client for pref changes to take effect.")
 
 ####################################################################################################
@@ -543,19 +545,25 @@ def GetEpisodes(tvdbid):
 
 ####################################################################################################
 
-def Get_SB_URL():
-    webroot = Prefs['webroot']
-    if webroot:
-        if webroot[0] == '/':
-            pass
+def Get_SB_URL(reset=False):
+    ''' include a hack to set the SickBeard URL in the plugin Dict since saving prefs seems unreliable'''
+    if reset:
+        webroot = Prefs['webroot']
+        if webroot:
+            if webroot[0] == '/':
+                pass
+            else:
+                webroot = '/'+webroot
         else:
-            webroot = '/'+webroot
+            webroot = ''
+        if Prefs['https']:
+            Dict['SB_URL'] = 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+        else:
+            Dict['SB_URL'] = 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
     else:
-        webroot = ''
-    if Prefs['https']:
-        return 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
-    else:
-        return 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+        pass
+    
+    return Dict['SB_URL']
     
 ####################################################################################################
 #
