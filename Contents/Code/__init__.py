@@ -87,14 +87,17 @@ def Future():
     
     oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
     
-    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
-        summary="Episodes which aired prior to today's date."))
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="all"), title="All",
+        summary="All episodes which are scheduled to air."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="today"), title="Airing Today",
         summary="Episodes which are scheduled to air today."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="soon"), title="Airing Soon",
         summary="Episodes which are scheduled to air this week."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="later"), title="Airing Later",
         summary="Episodes which are scheduled to air after this week."))
+    oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
+        summary="Episodes which aired prior to today's date."))
+
     
     return oc
         
@@ -103,6 +106,11 @@ def Future():
 def ComingEpisodes(timeframe=""):
     
     oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
+    
+    if timeframe == 'all':
+        timeframe = 'today|soon|later'
+    else:
+        pass
     
     coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])['data'][timeframe]
     
