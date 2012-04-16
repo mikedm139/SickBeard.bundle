@@ -432,6 +432,9 @@ def EpisodeList(tvdbid, season, show):
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
             title="%s. %s" %(key, value['name']), summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
+    #Attempt to sort the list using only the int value of the episode number
+    oc.objects.sort(key = lambda obj: int(obj.title.split('. ')[0]))
+    
     return oc
 
 ####################################################################################################
