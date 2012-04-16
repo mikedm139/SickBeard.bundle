@@ -430,7 +430,7 @@ def EpisodeList(tvdbid, season, show):
     for key, value in episodes.iteritems():
         summary = "Airdate: %s\nQuality: %s\nStatus: %s" % (value['airdate'], value['quality'], value['status'])
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
-            title=value['name'], summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
+            title="%s. %s" %(key, value['name']), summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     
     return oc
 
