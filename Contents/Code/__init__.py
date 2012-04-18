@@ -77,8 +77,8 @@ def MainMenu():
 ####################################################################################################
 
 def ValidatePrefs():
-    Log("Storing SickBeard URL for future reference: %s" Get_SB_URL(reset=True))
-    Log("Storing SickBeard API Key for future reference: %s" Get_API_Key())
+    Log("Storing SickBeard URL for future reference: %s" % Get_SB_URL(reset=True))
+    Log("Storing SickBeard API Key for future reference: %s" % Get_API_Key())
     return ObjectContainer(header=NAME, message="Please restart your Plex client for pref changes to take effect.")
 
 ####################################################################################################
@@ -108,21 +108,21 @@ def ComingEpisodes(timeframe=""):
     oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
     
     if timeframe == 'all':
-        timeframe = 'today|soon|later'
+        timeframe = ['today','soon','later']
     else:
-        pass
+        timeframe = [timeframe]
     
-    coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])['data'][timeframe]
+    for i in range(len(timeframe)):
+        coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])['data'][timeframe[i]]
     
-    if len(coming_Eps) == 0:
-        return ObjectContainer(header=NAME, message="No episodes found.")
+        for episode in coming_Eps:
+            title = FutureEpisodeTitle(episode)
+            summary = FutureEpisodeSummary(episode)
+            oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
+                title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
     
-    for episode in coming_Eps:
-        title = FutureEpisodeTitle(episode)
-        summary = FutureEpisodeSummary(episode)
-        oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
-            title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
-       
+    if len(oc) == 0:
+            return ObjectContainer(header=NAME, message="No episodes found.")   
     return oc
 
 ####################################################################################################
@@ -606,6 +606,8 @@ def Get_SB_URL(reset=False):
 
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
+    if not Dict['SB_API_Key']: Get_API_Key()
+    else:pass
     return Get_SB_URL() + '/api/%s/?' % Dict['SB_API_Key']
 
 ####################################################################################################
