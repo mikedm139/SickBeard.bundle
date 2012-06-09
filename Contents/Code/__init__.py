@@ -132,7 +132,9 @@ def Search(query):
     oc = ObjectContainer(title2="TVDB Results", no_cache=True)
     
     search_results = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
-    
+    if len(search_results['data']['results']) == 0:
+        return ObjectContainer(header=NAME, message="No search results found for %s" % query)
+
     for result in search_results['data']['results']:
         oc.add(PopupDirectoryObject(
             key=Callback(AddShowMenu, show=result),
@@ -638,7 +640,7 @@ def API_Request(params=[], return_message=False):
     
     '''start with the base API url'''
     request_url = API_URL()
-    '''build the request rl with the given parameters'''
+    '''build the request url with the given parameters'''
     if len(params) > 1:
         for i in range(len(params)):
             request_url = request_url + "%s=%s&" % (params[i]['key'], params[i]['value'])
