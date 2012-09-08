@@ -60,6 +60,8 @@ def MainMenu():
             summary="See details about all shows which SickBeard manages for you"))
         oc.add(InputDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
             prompt="Search TVDB for...", thumb=R(ICON)))
+        oc.add(DirectoryObject(key=Callback(History), title="History",
+            summary="See which shows have been snatched/downloaded recently"))
         oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
     else:
@@ -121,6 +123,22 @@ def ComingEpisodes(timeframe=""):
             oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
                 title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
     
+    if len(oc) == 0:
+            return ObjectContainer(header=NAME, message="No episodes found.")   
+    return oc
+
+####################################################################################################
+
+def History():
+    
+    oc = ObjectContainer(view_group='InfoList', title1='History', no_cache=True)
+    
+    for episode in API_Request([{'key':'cmd', 'value':'history'}])['data']:
+        title = HistoryEpisodeTitle(episode)
+        summary = HistoryEpisodeSummary(episode)
+        oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
+            title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
+
     if len(oc) == 0:
             return ObjectContainer(header=NAME, message="No episodes found.")   
     return oc
@@ -691,6 +709,22 @@ def FutureEpisodeSummary(episode={}):
         paused = ''
     episode_summary = "Episode Airdate: %s\nTimeslot: %s\nNetwork: %s\nQuality: %s\nStatus: %s\n%s\nSynopsis: %s" % (
         episode['airdate'], episode['airs'], episode['network'], episode['quality'], episode['show_status'], paused, episode['ep_plot'])
+    return episode_summary
+    
+####################################################################################################
+
+def HistoryEpisodeTitle(episode={}):
+    '''build a string for the episode's title using the show name, season #, episode #'''
+    episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['status'])
+    return episode_title
+    
+####################################################################################################
+
+def HistoryEpisodeSummary(episode={}):
+    '''build a string for the episode's summary using the episode's airdate, airs, network, paused(if true), quality, show_status,
+        and ep_plot'''
+    episode_summary = "Date: %s\nEpisode: %s\nProvider: %s\nQuality: %s\nStatus: %s\n" % (
+        episode['date'], episode['episode'], episode['provider'], episode['quality'], episode['status'])
     return episode_summary
     
 ####################################################################################################
