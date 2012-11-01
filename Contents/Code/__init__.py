@@ -539,7 +539,7 @@ def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
     '''tell SickBeard to do mark the given episode(s) with the given status'''
     
     message = API_Request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
-        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])['message']
+        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])['data'][0]['message']
     
     if entire_season:
         return True
