@@ -12,6 +12,9 @@ ART         = 'art-default.jpg'
 ICON        = 'icon-default.png'
 SEARCH_ICON = 'icon-search.png'
 PREFS_ICON  = 'icon-prefs.png'
+HISTORY_ICON= 'icon-history.png'
+COMING_ICON = 'icon-coming.png'
+
 
 ####################################################################################################
 
@@ -54,16 +57,15 @@ def MainMenu():
             pass
     
     if API_KEY:
+        oc.add(DirectoryObject(key=Callback(ShowList), title="Manage Your TV Shows",
+            summary="View and edit your existing TV Shows",thumb=R(ICON)))
         oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
-            summary="See which shows that you follow have episodes airing soon"))
-        oc.add(DirectoryObject(key=Callback(ShowList), title="All Shows",
-            summary="See details about all shows which SickBeard manages for you"))
-        oc.add(InputDirectoryObject(key=Callback(Search), title="Add Show", summary="Add show(s) to SickBeard by searching ",
-            prompt="Search TVDB for...", thumb=R(ICON)))
+            summary="See which shows that you follow have episodes airing soon",thumb=R(COMING_ICON)))
+        oc.add(InputDirectoryObject(key=Callback(Search), title="Search for TV Shows", summary="Find TV Shows to add to SickBeard",
+            prompt="Search for", thumb=R(SEARCH_ICON)))
         oc.add(DirectoryObject(key=Callback(History), title="History",
-            summary="See which shows have been snatched/downloaded recently"))
-        oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",
-            thumb=R(PREFS_ICON)))
+            summary="See which shows have been snatched/downloaded recently",thumb=R(HISTORY_ICON)))
+        oc.add(PrefsObject(title="Preferences", summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",thumb=R(PREFS_ICON)))
     else:
         oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
