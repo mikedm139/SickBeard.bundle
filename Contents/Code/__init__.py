@@ -3,7 +3,7 @@ import re, os, subprocess
 
 ####################################################################################################
 
-APPLICATION_PREFIX = "/applications/sickbeard"
+PREFIX = "/applications/sickbeard"
 
 NAME = 'SickBeard'
 
