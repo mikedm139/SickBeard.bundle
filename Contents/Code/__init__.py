@@ -63,12 +63,6 @@ def MainMenu():
     else:
         oc.add(PrefsObject(title="Preferences", summary="PLUGIN IS CURRENTLY UNABLE TO CONNECT TO SICKBEARD.\nSet SickBeard plugin preferences to allow it to connect to SickBeard app",
             thumb=R(PREFS_ICON)))
-    
-    #updateValues = CheckForUpdate()
-    #if updateValues['available']:
-    #    dir.Append(Function(PopupDirectoryItem(UpdateSB, 'SickBeard Update Available',
-    #        'May require you to restart SickBeard', 'Depending on your set-up, you may need to restart' +
-    #        ' SickBeard after updating.', thumb=R(ICON)), link = updateValues['link']))
 
     return oc
 
@@ -592,32 +586,6 @@ def Get_SB_URL(reset=False):
     
     return Dict['SB_URL']
     
-####################################################################################################
-#
-#def CheckForUpdate():
-#    '''check if sickbeard can be updated'''
-#    url = Get_SB_URL() + '/home'
-#    try:
-#        page = HTML.ElementFromURL(url, errors='ignore', cacheTime=0, headers=AuthHeader())
-#        updateCheck = page.xpath('//div[@id="upgrade-notification"]/div/span/a')[1]
-#        link = updateCheck.get('href')
-#        #Log('Update available: '+link)
-#        return {'available':True, 'link':link}
-#    except:
-#        #Log('No update available.')
-#        return {'available':False, 'link':None}
-#
-####################################################################################################
-#
-#def UpdateSB(sender, link):
-#    url = Get_SB_URL() + link
-#    try:
-#        update = HTTP.Request(url, errors='ignore', headers=AuthHeader()).content
-#    except:
-#        pass
-#    restartSB = subprocess.Popen('launchctl start com.sickbeard.sickbeard', shell=True)
-#    return ObjectContainer(header=NAME, message=L('SickBeard update started.'))
-#    
 ####################################################################################################
 @route(PREFIX + '/apiurl')
 def API_URL():
