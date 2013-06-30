@@ -1,6 +1,5 @@
 
 import re, os, subprocess, string
-from base64 import b64encode
 
 ####################################################################################################
 
@@ -38,7 +37,7 @@ def AuthHeader():
     header = {}
 
     if Prefs['sbUser'] and Prefs['sbPass']:
-        header = {'Authorization': 'Basic ' + b64encode(Prefs['sbUser'] + ':' + Prefs['sbPass'])}
+        header = {'Authorization': 'Basic ' + String.Base64Encode(Prefs['sbUser'] + ':' + Prefs['sbPass'])}
 
     return header
 
