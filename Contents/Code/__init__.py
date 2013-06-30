@@ -24,10 +24,9 @@ def Start():
     DirectoryObject.thumb = R(ICON)
     PopupDirectoryObject.thumb = R(ICON)
     HTTP.CacheTime=3600*3
-     
     
 ####################################################################################################
-
+@route(PREFIX + '/header')
 def AuthHeader():
     header = {}
 
@@ -37,7 +36,7 @@ def AuthHeader():
     return header
 
 ####################################################################################################
-@handler(NAME, PREFIX, R(ICON), R(ART))
+@handler(PREFIX, NAME, ICON, ART)
 def MainMenu():
     oc = ObjectContainer(no_cache=True)
     
