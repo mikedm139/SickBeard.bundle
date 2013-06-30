@@ -556,7 +556,7 @@ def GetEpisodes(tvdbid):
         for the given series'''
     show = API_Request([{'key':'cmd','value':'show.stats'},{'key':'tvdbid','value':tvdbid}])['data']
     
-    downloaded = show['downloaded']['total']
+    downloaded = int(show['downloaded']['total']) + int(show['archived'])
     total = show['total']
     
     episodes = "[%s / %s]" % (downloaded, total)
