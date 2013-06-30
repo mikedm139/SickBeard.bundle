@@ -76,14 +76,14 @@ def MainMenu():
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/validate')
 def ValidatePrefs():
     Log("Storing SickBeard URL for future reference: %s" % Get_SB_URL(reset=True))
     Log("Storing SickBeard API Key for future reference: %s" % Get_API_Key())
     return ObjectContainer(header=NAME, message="Please restart your Plex client for pref changes to take effect.")
 
 ####################################################################################################
-
+@route(PREFIX +'/future')
 def Future():
     
     oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
@@ -101,9 +101,9 @@ def Future():
 
     
     return oc
-        
-####################################################################################################
 
+####################################################################################################
+@route(PREFIX + '/coming')
 def ComingEpisodes(timeframe=""):
     
     oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
@@ -127,7 +127,7 @@ def ComingEpisodes(timeframe=""):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/history')
 def History():
     
     oc = ObjectContainer(view_group='InfoList', title1='History', no_cache=True)
@@ -143,7 +143,7 @@ def History():
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/search')
 def Search(query):
     
     oc = ObjectContainer(title2="TVDB Results", no_cache=True)
@@ -162,7 +162,7 @@ def Search(query):
     return oc
     
 ####################################################################################################  
-
+@route(PREFIX +'/shows')
 def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
     
@@ -193,7 +193,7 @@ def ShowList():
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/series')
 def SeriesPopup(tvdbid, show):
     '''display a popup menu with the option to force a search for the selected series'''
     oc = ObjectContainer()
@@ -204,7 +204,7 @@ def SeriesPopup(tvdbid, show):
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/episode', episode=dict)
 def EpisodePopup(episode={}, tvdbid=None, season=None):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     oc = ObjectContainer()
@@ -225,7 +225,7 @@ def EpisodePopup(episode={}, tvdbid=None, season=None):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/addmenu', show=dict)
 def AddShowMenu(show={}):
     '''offer the option to add the given show to sickbeard with default settings or with custom settings'''
     
@@ -237,7 +237,7 @@ def AddShowMenu(show={}):
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/addshow')
 def AddShow(tvdbid, useCustomSettings=False):
     '''add the given show to the SickBeard database with the SickBeard's default settings,
         or with custom settings'''
@@ -253,7 +253,7 @@ def AddShow(tvdbid, useCustomSettings=False):
     return API_Request(params, return_message=True)
 
 ####################################################################################################
-
+@route(PREFIX + '/addcustom')
 def CustomAddShow(tvdbid):
     '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
         modifications before adding a show with custom settings'''
@@ -280,7 +280,7 @@ def CustomAddShow(tvdbid):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/qualitydefaults')
 def GetQualityDefaults(group="", tvdbid=None):
     if not Dict[group]:
         Dict[group] = {}
@@ -297,7 +297,7 @@ def GetQualityDefaults(group="", tvdbid=None):
     return
     
 ####################################################################################################
-
+@route(PREFIX + '/getrootdirs')
 def GetSickBeardRootDirs():
     Dict['RootDirs'] = API_Request([{"key":"cmd", "value":"sb.getrootdirs"}])['data']
     for dir in Dict['RootDirs']:
@@ -307,7 +307,7 @@ def GetSickBeardRootDirs():
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/rootdir')
 def RootDirSetting():
     oc = ObjectContainer()
     for dir in Dict['RootDirs']:
@@ -319,14 +319,14 @@ def RootDirSetting():
     return oc
 
 ####################################################################################################
-
+@route(PREFIX +'/setrootdir')
 def SetRootDir(location):
     Dict["DefaultSettings"]["location"] = location
     Dict.Save()
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/quality')
 def QualitySetting(group, category):
     oc = ObjectContainer(title2="%s Quality" % String.CapilatizeWords(category), no_cache=True)
     for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters'][category]['allowedValues']:
@@ -337,7 +337,7 @@ def QualitySetting(group, category):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + 'changequalities')
 def ChangeQualities(group, quality, category, action):
     qualities = Dict[group][category]
     if action == "remove":
@@ -351,7 +351,7 @@ def ChangeQualities(group, quality, category, action):
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/language')
 def LanguageSetting():
     oc = ObjectContainer(title2="tvdb Language", no_cache=True)
     for lang in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['lang']['allowedValues']:
@@ -363,7 +363,7 @@ def LanguageSetting():
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/changelanguage')
 def ChangeLanguage(lang, value):
     if value == "True":
         Dict['DefaultSettings']['lang'] = lang
@@ -373,7 +373,7 @@ def ChangeLanguage(lang, value):
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/status')
 def StatusSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
@@ -384,7 +384,7 @@ def StatusSetting():
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/changestatus')
 def ChangeStatus(status, value):
     if value == "True":
         Dict['DefaultSettings']['status'] = status
@@ -394,7 +394,7 @@ def ChangeStatus(status, value):
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/seasonfolder')
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
     for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['season_folder']['allowedValues']:
@@ -412,7 +412,7 @@ def SeasonFolderSetting():
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/changeseasonfolder')
 def ChangeSeasonFolder(option, value):
     if value == "True":
         Dict['DefaultSettings']['season_folder'] = option
@@ -422,7 +422,7 @@ def ChangeSeasonFolder(option, value):
     return
 
 ####################################################################################################
-
+@route(PREFIX + '/seasonlist')
 def SeasonList(tvdbid, show):
     '''Display a list of all season of the given TV series in SickBeard'''
     oc = ObjectContainer(title1=show, title2="Seasons")
@@ -434,7 +434,7 @@ def SeasonList(tvdbid, show):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/season')
 def SeasonPopup(tvdbid, season, show):
     '''display a popup menu with options for the selected season'''
     oc = ObjectContainer()
@@ -448,7 +448,7 @@ def SeasonPopup(tvdbid, season, show):
     return oc
     
 ####################################################################################################
-
+@route(PREFIX + '/episodes')
 def EpisodeList(tvdbid, season, show):
     '''Display a list of all episodes of the given TV series including the SickBeard state of each'''
     oc = ObjectContainer(title1=show, title2="Season %s" % season)
@@ -465,7 +465,7 @@ def EpisodeList(tvdbid, season, show):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/editseries')
 def EditSeries(tvdbid):
     '''display a menu of options for editing SickBeard functions for the given series'''
     
@@ -494,7 +494,7 @@ def EditSeries(tvdbid):
     return oc
 
 ####################################################################################################
-
+@route(PREFIX + '/seriesquality')
 def SeriesQuality(tvdbid, show):
     '''allow option to change quality setting for individual series'''
     
@@ -511,7 +511,7 @@ def SeriesQuality(tvdbid, show):
     return oc
     
 ####################################################################################################    
-
+@route(PREFIX + '/applyquality')
 def ApplyQualitySettings(tvdbid):
     '''send modified quality settings for the given series to SickBeard'''
     settings = {}
@@ -525,15 +525,15 @@ def ApplyQualitySettings(tvdbid):
         {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}], return_message=True)
     
 ####################################################################################################
-
+@route(PREFIX + '/episoderefresh')
 def EpisodeRefresh(tvdbid, season, episode):
     '''tell SickBeard to do a force search for the given episode'''
     
     return API_Request([{"key":"cmd","value":"episode.search"},{"key":"tvdbid","value":tvdbid},
         {"key":"season","value":season},{"key":"episode","value":episode}], return_message=True)
-        
-####################################################################################################
 
+####################################################################################################
+@route(PREFIX + '/episodestatus', entire_season=bool)
 def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
     '''tell SickBeard to do mark the given episode(s) with the given status'''
     
@@ -546,7 +546,7 @@ def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
         return ObjectContainer(header=NAME, message=message)
     
 ####################################################################################################
-
+@route(PREFIX + '/seasonstatus')
 def SetSeasonStatus(tvdbid, season, status):
     '''iterate through the given season and tell SickBeard to mark each episode as wanted'''
     
@@ -560,7 +560,7 @@ def SetSeasonStatus(tvdbid, season, status):
     return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, String.CapilatizeWords(status)))
 
 ####################################################################################################
-
+@route(PREFIX + '/getepisodes')
 def GetEpisodes(tvdbid):
     '''determine the number of downloaded (or snatched) episodes out of the total number of episodes
         for the given series'''
@@ -574,7 +574,7 @@ def GetEpisodes(tvdbid):
     return episodes
 
 ####################################################################################################
-
+@route(PREFIX + '/sburl', reset=bool)
 def Get_SB_URL(reset=False):
     ''' include a hack to set the SickBeard URL in the plugin Dict since saving prefs seems unreliable'''
     if reset:
@@ -622,7 +622,7 @@ def Get_SB_URL(reset=False):
 #    return ObjectContainer(header=NAME, message=L('SickBeard update started.'))
 #    
 ####################################################################################################
-
+@route(PREFIX + '/apiurl')
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
     if not Dict['SB_API_Key']: Get_API_Key()
@@ -630,7 +630,7 @@ def API_URL():
     return Get_SB_URL() + '/api/%s/?' % Dict['SB_API_Key']
 
 ####################################################################################################
-
+@route(PREFIX + '/apikey')
 def Get_API_Key():
     '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
     url = Get_SB_URL() + '/config/general'
@@ -651,7 +651,7 @@ def Get_API_Key():
         return False
 
 ####################################################################################################
-
+@route(PREFIX + '/api', params=list, return_message=bool)
 def API_Request(params=[], return_message=False):
     '''use the given args to make an API request and return the JSON'''
     
@@ -691,14 +691,14 @@ def API_Request(params=[], return_message=False):
         return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     
 ####################################################################################################
-
+@route(PREFIX + '/futuretitle', episode=dict)
 def FutureEpisodeTitle(episode={}):
     '''build a string for the episode's title using the show name, season #, episode #, and episode title'''
     episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['ep_name'])
     return episode_title
     
 ####################################################################################################
-
+@route(PREFIX + '/futuresummary', episode=dict)
 def FutureEpisodeSummary(episode={}):
     '''build a string for the episode's summary using the episode's airdate, airs, network, paused(if true), quality, show_status,
         and ep_plot'''
@@ -711,14 +711,14 @@ def FutureEpisodeSummary(episode={}):
     return episode_summary
     
 ####################################################################################################
-
+@route(PREFIX + '/historytitle', episode=dict)
 def HistoryEpisodeTitle(episode={}):
     '''build a string for the episode's title using the show name, season #, episode #'''
     episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['status'])
     return episode_title
     
 ####################################################################################################
-
+@route(PREFIX + '/historysummary', episode=dict)
 def HistoryEpisodeSummary(episode={}):
     '''build a string for the episode's summary using the episode's airdate, airs, network, paused(if true), quality, show_status,
         and ep_plot'''
@@ -727,7 +727,7 @@ def HistoryEpisodeSummary(episode={}):
     return episode_summary
     
 ####################################################################################################
-
+@route(PREFIX + '/thumb')
 def GetThumb(tvdbid):
     thumb_url = API_URL() + "cmd=show.getposter&tvdbid=%s" % tvdbid
     data = HTTP.Request(thumb_url).content
