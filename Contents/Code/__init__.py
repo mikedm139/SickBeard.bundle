@@ -1,5 +1,5 @@
 
-import re, os, subprocess, string
+import re, os, subprocess
 
 ####################################################################################################
 
@@ -222,7 +222,7 @@ def EpisodePopup(episode={}, tvdbid=None, season=None):
         title="Force search for this episode"))
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=tvdbid, season=season,
-            episode=episode, status=status),title="Mark this episode as '%s'" % string.capitalize(status)))
+            episode=episode, status=status),title="Mark this episode as '%s'" % String.CapitalizeWords(status)))
     
     return oc
 
@@ -330,7 +330,7 @@ def SetRootDir(location):
 ####################################################################################################
 
 def QualitySetting(group, category):
-    oc = ObjectContainer(title2="%s Quality" % string.capitalize(category), no_cache=True)
+    oc = ObjectContainer(title2="%s Quality" % String.CapilatizeWords(category), no_cache=True)
     for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters'][category]['allowedValues']:
         if quality in Dict[group][category]:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "%s [*]" % quality))
@@ -445,7 +445,7 @@ def SeasonPopup(tvdbid, season, show):
     
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
-            title="Mark all episodes as '%s'" % string.capitalize(status)))
+            title="Mark all episodes as '%s'" % String.CapilatizeWords(status)))
     
     return oc
     
@@ -559,7 +559,7 @@ def SetSeasonStatus(tvdbid, season, status):
         if SetEpisodeStatus(tvdbid, season, episode=key, status=status, entire_season=True):
             count = count +1
     
-    return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, string.capitalize(status)))
+    return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, String.CapilatizeWords(status)))
 
 ####################################################################################################
 
