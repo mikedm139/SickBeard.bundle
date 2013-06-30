@@ -18,8 +18,6 @@ COMING_ICON = 'icon-coming.png'
 ####################################################################################################
 
 def Start():
-    
-    Plugin.AddPrefixHandler(PREFIX, MainMenu, L('SickBeard'), ICON, ART)
 
     Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
 
@@ -42,7 +40,7 @@ def AuthHeader():
     return header
 
 ####################################################################################################
-
+@handler(NAME, PREFIX, R(ICON), R(ART))
 def MainMenu():
     oc = ObjectContainer(no_cache=True)
     
