@@ -96,7 +96,7 @@ def Future():
 @route(PREFIX + '/coming')
 def ComingEpisodes(timeframe=""):
     
-    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=str.capitalize(timeframe), no_cache=True)
+    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=String.CapitalizeWords(timeframe), no_cache=True)
     
     if timeframe == 'all':
         timeframe = ['today','soon','later']
@@ -318,7 +318,7 @@ def SetRootDir(location):
 ####################################################################################################
 @route(PREFIX + '/quality')
 def QualitySetting(group, category):
-    oc = ObjectContainer(title2="%s Quality" % String.CapilatizeWords(category), no_cache=True)
+    oc = ObjectContainer(title2="%s Quality" % String.CapitalizeWords(category), no_cache=True)
     for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters'][category]['allowedValues']:
         if quality in Dict[group][category]:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "%s [*]" % quality))
@@ -433,7 +433,7 @@ def SeasonPopup(tvdbid, season, show):
     
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
-            title="Mark all episodes as '%s'" % String.CapilatizeWords(status)))
+            title="Mark all episodes as '%s'" % String.CapitalizeWords(status)))
     
     return oc
     
@@ -547,7 +547,7 @@ def SetSeasonStatus(tvdbid, season, status):
         if SetEpisodeStatus(tvdbid, season, episode=key, status=status, entire_season=True):
             count = count +1
     
-    return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, String.CapilatizeWords(status)))
+    return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, String.CapitalizeWords(status)))
 
 ####################################################################################################
 @route(PREFIX + '/getepisodes')
