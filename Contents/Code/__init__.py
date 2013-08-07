@@ -259,10 +259,13 @@ def CustomAddShow(tvdbid):
     oc.add(PopupDirectoryObject(key=Callback(LanguageSetting), title="TVDB Language: [%s]" % Dict['DefaultSettings']['lang']))
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     oc.add(PopupDirectoryObject(key=Callback(RootDirSetting), title="Root Directory"))
-    if Dict['DefaultSettings']['season_folders'] == 1:
-        season_folders = "Yes"
-    else:
-        season_folders = "No"
+    try:
+        if Dict['DefaultSettings']['season_folders'] == 1:
+            season_folders = "Yes"
+        else:
+            season_folders = "No"
+    except:
+        season_folders = "?"
     oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Use season Folders [%s]" % season_folders))
             
     oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, useCustomSettings=True), title="Add show with these settings"))
