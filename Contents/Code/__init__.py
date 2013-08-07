@@ -657,6 +657,9 @@ def API_Request(params=[], return_message=False):
                 return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     elif data['result'] == 'success' or 'failure':
         return data
+    elif data['result'] == 'fatal':
+        Log.Error("SickBeard threw an error:\n" + data)
+        return data
     else:
         return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
     
