@@ -43,6 +43,7 @@ def MainMenu():
     API_KEY = False
     if Dict['SB_API_Key']:
         API_KEY = True
+        Dict['settings_modified'] = False
     else:
         try:
             API_KEY = Get_API_Key()
@@ -250,8 +251,9 @@ def CustomAddShow(tvdbid):
     
     oc = ObjectContainer(title2="Add Show Settings...", no_cache=True)
     
-    GetQualityDefaults(group="DefaultSettings")
-    GetSickBeardRootDirs()
+    if not Dict['settings_modified']:
+        GetQualityDefaults(group="DefaultSettings")
+        GetSickBeardRootDirs()
     
     '''Offer separate menu options for each default setting'''
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=str(Dict['DefaultSettings']['initial'])))
@@ -315,13 +317,14 @@ def RootDirSetting():
 @route(PREFIX +'/setrootdir')
 def SetRootDir(location):
     Dict["DefaultSettings"]["location"] = location
+    Dict['settings_modified'] = True
     Dict.Save()
     return
 
 ####################################################################################################
 @route(PREFIX + '/quality')
 def QualitySetting(group, category):
-    oc = ObjectContainer(title2="%s Quality" % String.CapitalizeWords(category), no_cache=True)
+    oc = ObjectContainer(no_cache=True, title2="%s Quality" % String.CapitalizeWords(category))
     for quality in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters'][category]['allowedValues']:
         if quality in Dict[group][category]:
             oc.add(DirectoryObject(key=Callback(ChangeQualities, group=group, quality=quality, category=category, action="remove"), title = "%s [*]" % quality))
@@ -330,7 +333,7 @@ def QualitySetting(group, category):
     return oc
 
 ####################################################################################################
-@route(PREFIX + 'changequalities')
+@route(PREFIX + '/changequalities')
 def ChangeQualities(group, quality, category, action):
     qualities = Dict[group][category]
     if action == "remove":
@@ -340,6 +343,7 @@ def ChangeQualities(group, quality, category, action):
     else:
         pass
     Dict[group][category] = qualities
+    Dict['settings_modified'] = True
     Dict.Save()
     return
 
@@ -362,6 +366,7 @@ def ChangeLanguage(lang, value):
         Dict['DefaultSettings']['lang'] = lang
     else:
         Dict['DefaultSettings']['lang'] = ''
+    Dict['settings_modified'] = True
     Dict.Save()
     return
 
@@ -383,6 +388,7 @@ def ChangeStatus(status, value):
         Dict['DefaultSettings']['status'] = status
     else:
         Dict['DefaultSettings']['status'] = ''
+    Dict['settings_modified'] = True
     Dict.Save()
     return
 
@@ -411,6 +417,7 @@ def ChangeSeasonFolder(option, value):
         Dict['DefaultSettings']['season_folder'] = option
     else:
         Dict['DefaultSettings']['season_folder'] = ''
+    Dict['settings_modified'] = True
     Dict.Save()
     return
 
@@ -493,12 +500,13 @@ def SeriesQuality(tvdbid, show):
     
     oc = ObjectContainer(title1=show, title2='Quality Settings', no_cache=True)
     
-    GetQualityDefaults(group="Series", tvdbid=tvdbid)
+    if not Dict['settings_modified']:
+        GetQualityDefaults(group="Series", tvdbid=tvdbid)
     
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="initial"), title="Initial Quality", 
-        summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
+        summary='Selected Qualities: %s' % Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="archive"), title="Archive Quality",
-        summary=Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
+        summary='Selected Qualities: %s' % Dict['Series']['archive'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(DirectoryObject(key=Callback(ApplyQualitySettings, tvdbid=tvdbid), title="Apply quality settings",
         summary="Tell SickBeard to apply these quality settings to %s" % show, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     return oc
@@ -513,6 +521,8 @@ def ApplyQualitySettings(tvdbid):
             settings[key] = '|'.join(value)
         else:
             settings[key] = value
+    
+    Dict['settings_modified'] = False
     
     return API_Request([{"key":"cmd","value":"show.setquality"},{"key":"tvdbid","value":tvdbid},
         {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}], return_message=True)
