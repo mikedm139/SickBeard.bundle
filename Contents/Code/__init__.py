@@ -544,11 +544,16 @@ def EpisodeRefresh(tvdbid, season, episode):
 def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
     '''tell SickBeard to do mark the given episode(s) with the given status'''
     
-    message = API_Request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
-        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])['data'][0]['message']
+    data = API_Request([{'key':'cmd','value':'episode.setstatus'},{'key':'tvdbid','value':tvdbid},
+        {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])
+    message = data['message']
     
     if entire_season:
-        return True
+        if data['result'] == 'success':
+            return True
+        else:
+            Log.Error("TVDBID: %s S%sE%s -- %s" % (tvdbid, data['data'][0]['season'], data['data'][0]['episode'], data['data'][0]['message']))
+            return False
     else:
         return ObjectContainer(header=NAME, message=message)
     
