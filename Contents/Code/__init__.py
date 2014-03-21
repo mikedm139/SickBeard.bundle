@@ -1,6 +1,6 @@
 ####################################################################################################
 
-PREFIX = "/applications/sickbeard"
+PREFIX = "/video/sickbeard"
 
 NAME = 'SickBeard'
 
