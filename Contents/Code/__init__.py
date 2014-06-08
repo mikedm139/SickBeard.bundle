@@ -601,10 +601,13 @@ def Get_SB_URL(reset=False):
                 webroot = '/'+webroot
         else:
             webroot = ''
-        if Prefs['https']:
-            Dict['SB_URL'] = 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+        if Prefs['sbIP'].startswith("http"):
+            Dict['SB_URL'] = '%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
         else:
-            Dict['SB_URL'] = 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+            if Prefs['https']:
+                Dict['SB_URL'] = 'https://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
+            else:
+                Dict['SB_URL'] = 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
     else:
         pass
     
