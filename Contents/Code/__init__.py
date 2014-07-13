@@ -722,5 +722,14 @@ def HistoryEpisodeSummary(episode={}):
 @route(PREFIX + '/thumb')
 def GetThumb(tvdbid):
     thumb_url = API_URL() + "cmd=show.getposter&tvdbid=%s" % tvdbid
-    data = HTTP.Request(thumb_url).content
+    MAX_RETRIES = 2
+    i = 0
+    while i < MAX_RETRIES: 
+        try:
+            data = HTTP.Request(thumb_url).content
+            break
+        except:
+            i+=1
+            Log.Error('Failed to retrieve image from SickBeard. Retrying... Attempt #%d of %d' % (i+1, MAX_RETRIES+1))
+            continue
     return DataObject(data, 'image/jpeg')
