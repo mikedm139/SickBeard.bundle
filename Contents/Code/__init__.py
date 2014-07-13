@@ -107,7 +107,7 @@ def ComingEpisodes(timeframe=""):
         for episode in coming_Eps:
             title = FutureEpisodeTitle(episode)
             summary = FutureEpisodeSummary(episode)
-            oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode),
+            oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, episode=episode, tvdbid=episode['tvdbid'], season=episode['season']),
                 title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode['tvdbid']))) 
     
     if len(oc) == 0:
@@ -202,11 +202,12 @@ def EpisodePopup(episode={}, tvdbid=None, season=None):
     oc = ObjectContainer()
     if not season:
         episode = API_Request([{'key':'cmd','value':'episode'},{'key':'tvdbid','value':tvdbid},
-            {'key':'season','value':season},{'key':'episode','value':episode}])['data']
+            {'key':'season','value':season},{'key':'episode','value':ep_num}])['data']
         season=episode['season']
-        episode=episode['episode']
     else:
         pass
+    
+    episode=episode['episode']
     
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=tvdbid, season=season, episode=episode),
         title="Force search for this episode"))
