@@ -16,11 +16,8 @@ COMING_ICON = 'icon-coming.png'
 
 def Start():
 
-    Plugin.AddViewGroup("InfoList", viewMode="InfoList", mediaType="items")
-
     ObjectContainer.art = R(ART)
     ObjectContainer.title1 = NAME
-    ObjectContainer.view_group = "InfoList"
     DirectoryObject.thumb = R(ICON)
     PopupDirectoryObject.thumb = R(ICON)
     HTTP.CacheTime=3600*3
@@ -77,7 +74,7 @@ def ValidatePrefs():
 @route(PREFIX +'/future')
 def Future():
     
-    oc = ObjectContainer(view_group='InfoList', title2='Coming Episodes')
+    oc = ObjectContainer(title2='Coming Episodes')
     
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="all"), title="All",
         summary="All episodes which are scheduled to air."))
@@ -97,7 +94,7 @@ def Future():
 @route(PREFIX + '/coming')
 def ComingEpisodes(timeframe=""):
     
-    oc = ObjectContainer(view_group='InfoList', title1='Coming Episodes', title2=String.CapitalizeWords(timeframe), no_cache=True)
+    oc = ObjectContainer(title1='Coming Episodes', title2=String.CapitalizeWords(timeframe), no_cache=True)
     
     if timeframe == 'all':
         timeframe = ['today','soon','later']
@@ -121,7 +118,7 @@ def ComingEpisodes(timeframe=""):
 @route(PREFIX + '/history')
 def History():
     
-    oc = ObjectContainer(view_group='InfoList', title1='History', no_cache=True)
+    oc = ObjectContainer(title1='History', no_cache=True)
     
     for episode in API_Request([{'key':'cmd', 'value':'history'}])['data']:
         title = HistoryEpisodeTitle(episode)
