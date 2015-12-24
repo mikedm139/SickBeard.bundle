@@ -3,25 +3,25 @@
         "id": "sbAPI",
         "label": "API Key",
         "type": "text",
-        "default": "" 
+        "default": ""
     },
     {
         "id": "sbIP",
         "label": "SickBeardIP",
         "type": "text",
-        "default": "localhost" 
+        "default": "localhost"
     },
     {
         "id": "sbPort",
         "label": "SickBeardPort",
         "type": "text",
-        "default": "8081" 
+        "default": "8081"
     },
     {
         "id": "webroot",
         "label": "Webroot",
         "type": "text",
-        "default": "" 
+        "default": ""
     },
     {
         "id": "https",

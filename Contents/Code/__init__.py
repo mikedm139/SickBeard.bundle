@@ -61,9 +61,9 @@ def ValidatePrefs():
 ####################################################################################################
 @route(PREFIX +'/future')
 def Future():
-    
+
     oc = ObjectContainer(title2='Coming Episodes')
-    
+
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="all"), title="All",
         summary="All episodes which are scheduled to air."))
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="today"), title="Airing Today",
@@ -75,23 +75,23 @@ def Future():
     oc.add(DirectoryObject(key=Callback(ComingEpisodes, timeframe="missed"), title="Missed Episodes",
         summary="Episodes which aired prior to today's date."))
 
-    
+
     return oc
 
 ####################################################################################################
 @route(PREFIX + '/coming')
 def ComingEpisodes(timeframe=""):
-    
+
     oc = ObjectContainer(title1='Coming Episodes', title2=String.CapitalizeWords(timeframe), no_cache=True)
-    
+
     if timeframe == 'all':
         timeframe = ['today','soon','later']
     else:
         timeframe = [timeframe]
-    
+
     for i in range(len(timeframe)):
         coming_Eps = API_Request([{'key':'cmd', 'value':'future'}])['data'][timeframe[i]]
-    
+
         for episode in coming_Eps:
             title = FutureEpisodeTitle(episode)
             summary = FutureEpisodeSummary(episode)
@@ -99,15 +99,15 @@ def ComingEpisodes(timeframe=""):
                 title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode[IndexerField()])))
 
     if len(oc) == 0:
-            return ObjectContainer(header=NAME, message="No episodes found.")   
+            return ObjectContainer(header=NAME, message="No episodes found.")
     return oc
 
 ####################################################################################################
 @route(PREFIX + '/history')
 def History():
-    
+
     oc = ObjectContainer(title1='History', no_cache=True)
-    
+
     for episode in API_Request([{'key':'cmd', 'value':'history'}])['data']:
         title = HistoryEpisodeTitle(episode)
         summary = HistoryEpisodeSummary(episode)
@@ -115,15 +115,15 @@ def History():
             title=title, summary=summary, thumb=Callback(GetThumb, tvdbid=episode[IndexerField()])))
 
     if len(oc) == 0:
-            return ObjectContainer(header=NAME, message="No episodes found.")   
+            return ObjectContainer(header=NAME, message="No episodes found.")
     return oc
 
 ####################################################################################################
 @route(PREFIX + '/search')
 def Search(query):
-    
+
     oc = ObjectContainer(title2="TVDB Results", no_cache=True)
-    
+
     search_results = API_Request([{'key':'cmd', 'value':'sb.searchtvdb'},{'key':'name', 'value':String.Quote(query, usePlus=True)}])
     if len(search_results['data']['results']) == 0:
         return ObjectContainer(header=NAME, message="No search results found for %s" % query)
@@ -134,16 +134,16 @@ def Search(query):
             title = result['name'],
             summary = "TVDB ID: %s\nFirst Aired: %s" % (result['tvdbid'], result['first_aired']), # Still uses tvbdbid
             thumb = Callback(GetThumb, tvdbid=result['tvdbid'])))
-    
+
     return oc
 
 ####################################################################################################
 @route(PREFIX +'/shows')
 def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
-    
+
     oc = ObjectContainer(title2="All Shows", no_cache=True)
-    
+
     shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
     show_list = sorted(shows.items(), key = lambda item: item[0])
 
@@ -152,7 +152,7 @@ def ShowList():
         show = entry[1]
         if 'tvrage_name' in show and len(show['tvrage_name']) > 0:
             show_name = show['tvrage_name']
-        
+
         if show['paused']:
             paused = "True"
         else:
@@ -163,23 +163,23 @@ def ShowList():
         title = "%s   %s" % (show_name, episodes)
         summary = "Next Episode: %s\nNetwork: %s\nDownload Quality: %s\nStatus: %s\nPaused: %s" % (
             show['next_ep_airdate'], show['network'], show['quality'], show['status'], paused, )
-            
+
         oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid, show=title), title=title, summary=summary,
             thumb=Callback(GetThumb, tvdbid=tvdbid)))
 
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/series')
 def SeriesPopup(tvdbid, show):
     '''display a popup menu with the option to force a search for the selected series'''
     oc = ObjectContainer()
-    
+
     oc.add(DirectoryObject(key=Callback(SeasonList, tvdbid=tvdbid, show=show), title="View Season List"))
     oc.add(DirectoryObject(key=Callback(EditSeries, tvdbid=tvdbid), title="Edit SickBeard series options"))
-    
+
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/episode')
 def EpisodePopup(episode=None, tvdbid=None, season=None):
@@ -197,27 +197,27 @@ def EpisodePopup(episode=None, tvdbid=None, season=None):
     for status in API_Request([{"key":"cmd", "value":"episode.setstatus"},{"key":"help", "value":"1"}])['data']['requiredParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=tvdbid, season=season,
             episode=episode, status=status),title="Mark this episode as '%s'" % String.CapitalizeWords(status)))
-    
+
     return oc
 
 ####################################################################################################
 @route(PREFIX + '/addmenu', show=dict)
 def AddShowMenu(show={}):
     '''offer the option to add the given show to sickbeard with default settings or with custom settings'''
-    
+
     oc = ObjectContainer()
-    
+
     oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=show['tvdbid']), title="Add with default settings"))
     oc.add(DirectoryObject(key=Callback(CustomAddShow, tvdbid=show['tvdbid']), title="Add with custom settings"))
-    
+
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/addshow')
 def AddShow(tvdbid, useCustomSettings=False):
     '''add the given show to the SickBeard database with the SickBeard's default settings,
         or with custom settings'''
-    
+
     params = [{"key":"cmd", "value":"show.addnew"},{"key":"tvdbid","value":tvdbid}]
     if useCustomSettings:
         for key, value in Dict['DefaultSettings'].iteritems():
@@ -225,7 +225,7 @@ def AddShow(tvdbid, useCustomSettings=False):
                 params.append({'key':key,'value':value})
             else:
                 params.append({'key':key,'value':'|'.join(value)})
-        
+
     return API_Request(params, return_message=True)
 
 ####################################################################################################
@@ -233,13 +233,13 @@ def AddShow(tvdbid, useCustomSettings=False):
 def CustomAddShow(tvdbid):
     '''retrieve the user's default settings from SickBeard and use them as a starting point to allow
         modifications before adding a show with custom settings'''
-    
+
     oc = ObjectContainer(title2="Add Show Settings...", no_cache=True)
-    
+
     if not Dict['settings_modified']:
         GetQualityDefaults(group="DefaultSettings")
         GetSickBeardRootDirs()
-    
+
     '''Offer separate menu options for each default setting'''
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="initial"), title="Initial Quality", summary=str(Dict['DefaultSettings']['initial'])))
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="DefaultSettings", category="archive"), title="Archive Quality", summary=str(Dict['DefaultSettings']['archive'])))
@@ -256,7 +256,7 @@ def CustomAddShow(tvdbid):
     oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Flatten Folders [%s]" % flatten_folders))
 
     oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, useCustomSettings=True), title="Add show with these settings"))
-    
+
     return oc
 
 ####################################################################################################
@@ -270,12 +270,12 @@ def GetQualityDefaults(group="", tvdbid=None):
     else:
         settings = API_Request([{"key":"cmd", "value":"show.getquality"},{"key":IndexerField(), "value":tvdbid}])
         Dict[group] = {}
-    
+
     for key, value in settings['data'].iteritems():
         Dict[group][key] = value
-    
+
     return
-    
+
 ####################################################################################################
 @route(PREFIX + '/getrootdirs')
 def GetSickBeardRootDirs():
@@ -343,7 +343,7 @@ def LanguageSetting():
         else:
             oc.add(DirectoryObject(key=Callback(ChangeLanguage, lang=lang, value="True"), title = "%s [ ]" % lang))
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/changelanguage')
 def ChangeLanguage(lang, value):
@@ -394,7 +394,7 @@ def SeasonFolderSetting():
         except:
             oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [ ]" % label))
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/changeseasonfolder')
 def ChangeSeasonFolder(option, value):
@@ -415,7 +415,7 @@ def SeasonList(tvdbid, show):
     for season in seasons:
         oc.add(PopupDirectoryObject(key=Callback(SeasonPopup, season=season, tvdbid=tvdbid, show=show),
             title="Season %s" % season, thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
+
     return oc
 
 ####################################################################################################
@@ -423,15 +423,15 @@ def SeasonList(tvdbid, show):
 def SeasonPopup(tvdbid, season, show):
     '''display a popup menu with options for the selected season'''
     oc = ObjectContainer()
-    
+
     oc.add(DirectoryObject(key=Callback(EpisodeList, tvdbid=tvdbid, season=season, show=show), title="View Episode List"))
-    
+
     for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetSeasonStatus, tvdbid=tvdbid, season=season, status=status),
             title="Mark all episodes as '%s'" % String.CapitalizeWords(status)))
-    
+
     return oc
-    
+
 ####################################################################################################
 @route(PREFIX + '/episodes')
 def EpisodeList(tvdbid, season, show):
@@ -443,10 +443,10 @@ def EpisodeList(tvdbid, season, show):
         summary = "Airdate: %s\nQuality: %s\nStatus: %s" % (value['airdate'], value['quality'], value['status'])
         oc.add(PopupDirectoryObject(key=Callback(EpisodePopup, tvdbid=tvdbid, season=season, episode=key),
             title="%s. %s" %(key, value['name']), summary=summary, thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
+
     #Attempt to sort the list using only the int value of the episode number
     oc.objects.sort(key = lambda obj: int(obj.title.split('. ')[0]))
-    
+
     return oc
 
 ####################################################################################################
@@ -465,38 +465,38 @@ def EditSeries(tvdbid):
         thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.delete"},{"key":IndexerField(),"value":tvdbid}],
         return_message=True), title='Delete Series', summary="Delete a show from SickBeard", thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
+
     if not show['paused']:
         oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.pause"},{"key":IndexerField(),"value":tvdbid},
             {"key":"pause","value":"1"}], return_message=True), title='Pause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
     else:
         oc.add(DirectoryObject(key=Callback(API_Request, params=[{"key":"cmd","value":"show.pause"},{"key":IndexerField(),"value":tvdbid},
             {"key":"pause","value":"0"}], return_message=True), title='Unpause Series', thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
+
     oc.add(DirectoryObject(key=Callback(SeriesQuality, tvdbid=tvdbid, show=show['show_name']), title="Download Quality: [%s]" % show['quality'],
         summary="Initial: %s \nArchive: %s" % (show['quality_details']['initial'],show['quality_details']['archive']), thumb=Callback(GetThumb, tvdbid=tvdbid)))
-        
+
     return oc
 
 ####################################################################################################
 @route(PREFIX + '/seriesquality')
 def SeriesQuality(tvdbid, show):
     '''allow option to change quality setting for individual series'''
-    
+
     oc = ObjectContainer(title1=show, title2='Quality Settings', no_cache=True)
-    
+
     if not Dict['settings_modified']:
         GetQualityDefaults(group="Series", tvdbid=tvdbid)
-    
-    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="initial"), title="Initial Quality", 
+
+    oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="initial"), title="Initial Quality",
         summary='Selected Qualities: %s' % Dict['Series']['initial'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(PopupDirectoryObject(key=Callback(QualitySetting, group="Series", category="archive"), title="Archive Quality",
         summary='Selected Qualities: %s' % Dict['Series']['archive'], thumb=Callback(GetThumb, tvdbid=tvdbid)))
     oc.add(DirectoryObject(key=Callback(ApplyQualitySettings, tvdbid=tvdbid), title="Apply quality settings",
         summary="Tell SickBeard to apply these quality settings to %s" % show, thumb=Callback(GetThumb, tvdbid=tvdbid)))
     return oc
-    
-####################################################################################################    
+
+####################################################################################################
 @route(PREFIX + '/applyquality')
 def ApplyQualitySettings(tvdbid):
     '''send modified quality settings for the given series to SickBeard'''
@@ -506,12 +506,12 @@ def ApplyQualitySettings(tvdbid):
             settings[key] = '|'.join(value)
         else:
             settings[key] = value
-    
+
     Dict['settings_modified'] = False
 
     return API_Request([{"key":"cmd","value":"show.setquality"},{"key":IndexerField(),"value":tvdbid},
         {"key":"initial","value":settings['initial']},{"key":"archive","value":settings['archive']}], return_message=True)
-    
+
 ####################################################################################################
 @route(PREFIX + '/episoderefresh')
 def EpisodeRefresh(tvdbid, season, episode):
@@ -528,7 +528,7 @@ def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
     data = API_Request([{'key':'cmd','value':'episode.setstatus'},{'key':IndexerField(),'value':tvdbid},
         {'key':'season','value':season},{'key':'episode','value':episode},{'key':'status','value':status}])
     message = data['message']
-    
+
     if entire_season:
         if data['result'] == 'success':
             return True
@@ -537,19 +537,19 @@ def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
             return False
     else:
         return ObjectContainer(header=NAME, message=message)
-    
+
 ####################################################################################################
 @route(PREFIX + '/seasonstatus')
 def SetSeasonStatus(tvdbid, season, status):
     '''iterate through the given season and tell SickBeard to mark each episode as wanted'''
-    
+
     count = 0
     episodes = API_Request([{'key':'cmd','value':'show.seasons'},{'key':IndexerField(),'value':tvdbid},
         {'key':'season','value':season}])['data']
     for key, value in episodes.iteritems():
         if SetEpisodeStatus(tvdbid, season, episode=key, status=status, entire_season=True):
             count = count +1
-    
+
     return ObjectContainer(header=NAME, message="%s marked as '%s'" % (count, String.CapitalizeWords(status)))
 
 ####################################################################################################
@@ -567,8 +567,8 @@ def GetEpisodes(tvdbid):
         episodes = "[%s / %s]" % (downloaded, total)
     except:
         episodes = "[? / ?]"
-    
-    
+
+
     return episodes
 
 ####################################################################################################
@@ -593,9 +593,9 @@ def Get_SB_URL(reset=False):
                 Dict['SB_URL'] = 'http://%s:%s%s' % (Prefs['sbIP'], Prefs['sbPort'], webroot)
     else:
         pass
-    
+
     return Dict['SB_URL']
-    
+
 ####################################################################################################
 @route(PREFIX + '/apiurl')
 def API_URL():
@@ -606,7 +606,7 @@ def API_URL():
 @route(PREFIX + '/api', params=list, return_message=bool)
 def API_Request(params=[], return_message=False):
     '''use the given args to make an API request and return the JSON'''
-    
+
     '''start with the base API url'''
     request_url = API_URL()
     '''build the request url with the given parameters'''
@@ -619,12 +619,12 @@ def API_Request(params=[], return_message=False):
     request_url = request_url.strip('&')
     '''send the request and confirm success'''
     data = JSON.ObjectFromURL(request_url, timeout=30, cacheTime=0)
-    
+
     if return_message:
         return ObjectContainer(header=NAME, message=data['message'])
     else:
         pass
-    
+
     if data['result'] == "denied":
         return ObjectContainer(header=NAME, message="The API request: %s\n was denied. Do you need to update your API key?" % request_url)
     elif data['result'] == 'success' or 'failure':
@@ -634,14 +634,14 @@ def API_Request(params=[], return_message=False):
         return data
     else:
         return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
-    
+
 ####################################################################################################
 @route(PREFIX + '/futuretitle', episode=dict)
 def FutureEpisodeTitle(episode={}):
     '''build a string for the episode's title using the show name, season #, episode #, and episode title'''
     episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['ep_name'])
     return episode_title
-    
+
 ####################################################################################################
 @route(PREFIX + '/futuresummary', episode=dict)
 def FutureEpisodeSummary(episode={}):
@@ -654,14 +654,14 @@ def FutureEpisodeSummary(episode={}):
     episode_summary = "Episode Airdate: %s\nTimeslot: %s\nNetwork: %s\nQuality: %s\nStatus: %s\n%s\nSynopsis: %s" % (
         episode['airdate'], episode['airs'], episode['network'], episode['quality'], episode['show_status'], paused, episode['ep_plot'])
     return episode_summary
-    
+
 ####################################################################################################
 @route(PREFIX + '/historytitle', episode=dict)
 def HistoryEpisodeTitle(episode={}):
     '''build a string for the episode's title using the show name, season #, episode #'''
     episode_title = "%s - S%sE%s - %s" % (episode['show_name'], episode['season'], episode['episode'], episode['status'])
     return episode_title
-    
+
 ####################################################################################################
 @route(PREFIX + '/historysummary', episode=dict)
 def HistoryEpisodeSummary(episode={}):
@@ -670,14 +670,14 @@ def HistoryEpisodeSummary(episode={}):
     episode_summary = "Date: %s\nEpisode: %s\nProvider: %s\nQuality: %s\nStatus: %s\n" % (
         episode['date'], episode['episode'], episode['provider'], episode['quality'], episode['status'])
     return episode_summary
-    
+
 ####################################################################################################
 @route(PREFIX + '/thumb')
 def GetThumb(tvdbid):
     thumb_url = API_URL() + "cmd=show.getposter&%s=%s" % (IndexerField(), tvdbid)
     MAX_RETRIES = 2
     i = 0
-    while i < MAX_RETRIES: 
+    while i < MAX_RETRIES:
         try:
             data = HTTP.Request(thumb_url).content
             break
