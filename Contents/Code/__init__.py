@@ -150,7 +150,7 @@ def ShowList(offset=0):
     for entry in show_list[offset:offset+20]:
         show_name = entry[0]
         show = entry[1]
-        if len(show['tvrage_name']) > 0:
+        if 'tvrage_name' in show and len(show['tvrage_name']) > 0:
             show_name = show['tvrage_name']
         
         if show['paused']:
@@ -565,7 +565,9 @@ def GetEpisodes(tvdbid):
     show = API_Request([{'key':'cmd','value':'show.stats'},{'key':IndexerField(),'value':tvdbid}])['data']
 
     try:
-        downloaded = int(show['downloaded']['total']) + int(show['archived'])
+        downloaded = int(show['downloaded']['total'])
+        if 'archived' in show:
+            downloaded += int(show['archived'])
         total = show['total']
         episodes = "[%s / %s]" % (downloaded, total)
     except:
