@@ -756,6 +756,7 @@ def API_Request(params={}, return_message=False):
 
     '''send the request and confirm success'''
     data = JSON.ObjectFromURL(request_url, values=params, timeout=30, cacheTime=0)
+    Log.Debug("Request: %s" % "&".join("%s=%s" % (key, value) for key, value in params.iteritems()))
 
     if return_message:
         return ObjectContainer(header=NAME, message=data['message'])
