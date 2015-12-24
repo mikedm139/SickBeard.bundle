@@ -702,7 +702,11 @@ def GetEpisodes(tvdbid):
         downloaded = int(show['downloaded']['total'])
         if 'archived' in show:
             downloaded += int(show['archived'])
+        if 'ignored' in show:
+            downloaded += int(show['ignored'])
         total = show['total']
+        if 'unaired' in show:
+            total = total - int(show['unaired'])
         episodes = "[%s / %s]" % (downloaded, total)
     except:
         episodes = "[? / ?]"
