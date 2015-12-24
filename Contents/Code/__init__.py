@@ -136,18 +136,18 @@ def Search(query):
             thumb = Callback(GetThumb, tvdbid=result['tvdbid'])))
     
     return oc
-    
-####################################################################################################  
-@route(PREFIX +'/shows', offset=int)
-def ShowList(offset=0):
+
+####################################################################################################
+@route(PREFIX +'/shows')
+def ShowList():
     '''List all shows that SickBeard manages, and relevant info about each show'''
     
     oc = ObjectContainer(title2="All Shows", no_cache=True)
     
     shows = API_Request([{'key':'cmd', 'value':'shows'},{'key':'sort', 'value':'name'}])['data']
     show_list = sorted(shows.items(), key = lambda item: item[0])
-    
-    for entry in show_list[offset:offset+20]:
+
+    for entry in show_list:
         show_name = entry[0]
         show = entry[1]
         if 'tvrage_name' in show and len(show['tvrage_name']) > 0:
@@ -166,10 +166,7 @@ def ShowList(offset=0):
             
         oc.add(PopupDirectoryObject(key=Callback(SeriesPopup, tvdbid=tvdbid, show=title), title=title, summary=summary,
             thumb=Callback(GetThumb, tvdbid=tvdbid)))
-    
-    if offset+20 < len(show_list):
-        oc.add(NextPageObject(key=Callback(ShowList, offset=offset+20)))
-    
+
     return oc
     
 ####################################################################################################
