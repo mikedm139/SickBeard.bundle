@@ -181,8 +181,8 @@ def SeriesPopup(tvdbid, show):
     return oc
     
 ####################################################################################################
-@route(PREFIX + '/episode', episode=dict)
-def EpisodePopup(episode={}, tvdbid=None, season=None):
+@route(PREFIX + '/episode')
+def EpisodePopup(episode=None, tvdbid=None, season=None):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     oc = ObjectContainer()
     if not season:
@@ -191,12 +191,10 @@ def EpisodePopup(episode={}, tvdbid=None, season=None):
         season=episode['season']
     else:
         pass
-    
-    episode=episode['episode']
-    
+
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=tvdbid, season=season, episode=episode),
         title="Force search for this episode"))
-    for status in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['status']['allowedValues']:
+    for status in API_Request([{"key":"cmd", "value":"episode.setstatus"},{"key":"help", "value":"1"}])['data']['requiredParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=tvdbid, season=season,
             episode=episode, status=status),title="Mark this episode as '%s'" % String.CapitalizeWords(status)))
     
