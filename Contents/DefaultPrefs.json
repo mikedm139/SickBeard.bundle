@@ -27,7 +27,14 @@
         "id": "https",
         "label": "Use HTTPS",
         "type": "bool",
-        "default": "False" 
+        "default": "False"
+    },
+    {
+        "id": "Fork",
+        "label": "Which fork of Sickbeard are you using?",
+        "type": "enum",
+        "values": ["Sickbeard", "SickRage"],
+        "default": "Sickbeard"
     },
     {
         "id": "TVDBlang",
