@@ -21,33 +21,13 @@ def Start():
     DirectoryObject.thumb = R(ICON)
     PopupDirectoryObject.thumb = R(ICON)
     HTTP.CacheTime=3600*3
-    
-####################################################################################################
-@route(PREFIX + '/header')
-def AuthHeader():
-    header = {}
-
-    if Prefs['sbUser'] and Prefs['sbPass']:
-        header = {'Authorization': 'Basic ' + String.Base64Encode(Prefs['sbUser'] + ':' + Prefs['sbPass'])}
-
-    return header
 
 ####################################################################################################
 @handler(PREFIX, NAME, ICON, ART)
 def MainMenu():
     oc = ObjectContainer(no_cache=True)
-    
-    API_KEY = False
-    if Dict['SB_API_Key']:
-        API_KEY = True
-        Dict['settings_modified'] = False
-    else:
-        try:
-            API_KEY = Get_API_Key()
-        except:
-            pass
-    
-    if API_KEY:
+
+    if Prefs['sbAPI']:
         oc.add(DirectoryObject(key=Callback(ShowList), title="Manage Your TV Shows",
             summary="View and edit your existing TV Shows",thumb=R(ICON)))
         oc.add(DirectoryObject(key=Callback(Future), title="Coming Episodes",
@@ -67,7 +47,7 @@ def MainMenu():
 @route(PREFIX + '/validate')
 def ValidatePrefs():
     Log("Storing SickBeard URL for future reference: %s" % Get_SB_URL(reset=True))
-    Log("Storing SickBeard API Key for future reference: %s" % Get_API_Key())
+    Log("Storing SickBeard API Key for future reference: %s" % Prefs['sbAPI'])
     return ObjectContainer(header=NAME, message="Please restart your Plex client for pref changes to take effect.")
 
 ####################################################################################################
@@ -615,30 +595,7 @@ def Get_SB_URL(reset=False):
 @route(PREFIX + '/apiurl')
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
-    if not Dict['SB_API_Key']: Get_API_Key()
-    else:pass
-    return Get_SB_URL() + '/api/%s/?' % Dict['SB_API_Key']
-
-####################################################################################################
-@route(PREFIX + '/apikey')
-def Get_API_Key():
-    '''scrape the SickBeard/Config/General page for the API key and set it in the plugin Dict[]'''
-    url = Get_SB_URL() + '/config/general'
-    page = HTML.ElementFromURL(url, headers=AuthHeader(), cacheTime=0)
-    try:
-        api_key = page.xpath('//input[@name="api_key"]')[0].get('value')
-        Log("API key found.")
-    except:
-        Log("Unable to retrieve API key from SickBeard.")
-        return False
-    if api_key != '': ### Check this... it might be None rather than '' ###
-        Dict['SB_API_Key'] = api_key
-        Dict.Save()
-        Log("Saving API Key.")
-        return True
-    else:
-        Log("API key is no good.")
-        return False
+    return Get_SB_URL() + '/api/%s/?' % Prefs['sbAPI']
 
 ####################################################################################################
 @route(PREFIX + '/api', params=list, return_message=bool)
@@ -664,17 +621,7 @@ def API_Request(params=[], return_message=False):
         pass
     
     if data['result'] == "denied":
-        '''reset the API key in the plugin Dict[] in case the user generated a new key'''
-        if Get_API_Key():
-            data = JSON.ObjectFromURL(request_url)
-            if return_message:
-                ObjectContainer(header=NAME, message=data['message'])
-            else:
-                pass
-            if data['result'] == "success":
-                return data
-            else:
-                return ObjectContainer(header=NAME, message="The API request: %s\n was unsuccessful. Please try again." % request_url)
+        return ObjectContainer(header=NAME, message="The API request: %s\n was denied. Do you need to update your API key?" % request_url)
     elif data['result'] == 'success' or 'failure':
         return data
     elif data['result'] == 'fatal':

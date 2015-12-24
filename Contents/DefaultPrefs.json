@@ -1,15 +1,8 @@
 [
     {
-        "id": "sbUser",
-        "label": "Username",
+        "id": "sbAPI",
+        "label": "API Key",
         "type": "text",
-        "default": "" 
-    },
-    {
-        "id": "sbPass",
-        "label": "Password",
-        "type": "text",
-        "option": "hidden",
         "default": "" 
     },
     {
