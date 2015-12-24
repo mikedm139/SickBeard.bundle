@@ -836,7 +836,7 @@ def HistoryEpisodeSummary(episode={}):
 
 
 ####################################################################################################
-# @route(PREFIX + '/thumb')
+@route(PREFIX + '/thumb')
 def GetThumb(tvdbid):
     thumb_url = API_URL() + "cmd=show.getposter&%s=%s" % (IndexerField(), tvdbid)
     MAX_RETRIES = 2
