@@ -47,6 +47,8 @@ def MainMenu():
         oc.add(DirectoryObject(key=Callback(History), title="History",
                                summary="See which shows have been snatched/downloaded recently",
                                thumb=R(HISTORY_ICON)))
+        oc.add(DirectoryObject(key=Callback(Manage), title="Manage Sickbeard",
+                               summary="Manage Sickbeard", thumb=R(ICON)))
         oc.add(PrefsObject(title="Preferences",
                            summary="Set SickBeard plugin preferences to allow it to connect to SickBeard app",  # noqa
                            thumb=R(PREFS_ICON)))
@@ -845,3 +847,42 @@ def GetThumb(tvdbid):
                       (i + 1, MAX_RETRIES + 1))
             continue
     return DataObject(data, 'image/jpeg')
+
+
+####################################################################################################
+@route(PREFIX + '/manage')
+def Manage():
+    oc = ObjectContainer(title1="Manage")
+
+    status = API_Request({"cmd": "sb.checkscheduler"})
+
+    if status['data']['backlog_is_paused']:
+        oc.add(DirectoryObject(key=Callback(PauseBacklog, pause=False), title="Unpause Backlog",
+                               thumb=R(ICON)))
+    else:
+        oc.add(DirectoryObject(key=Callback(PauseBacklog, pause=True), title="Pause Backlog",
+                               thumb=R(ICON)))
+
+    oc.add(DirectoryObject(key=Callback(ForceSearch), title="Force Episode Search", thumb=R(ICON)))
+
+    oc.add(DirectoryObject(key=Callback(Restart), title="Restart Sickbeard", thumb=R(ICON)))
+    oc.add(DirectoryObject(key=Callback(Shutdown), title="Shutdown Sickbeard", thumb=R(ICON)))
+
+    return oc
+
+
+def PauseBacklog(pause):
+    return API_Request({"cmd": "sb.pausebacklog", "pause": 1 if pause else 0},
+                       return_message=True)
+
+
+def ForceSearch():
+    return API_Request({"cmd": "sb.forcesearch"}, return_message=True)
+
+
+def Restart():
+    return API_Request({"cmd": "sb.restart"}, return_message=True)
+
+
+def Shutdown():
+    return API_Request({"cmd": "sb.shutdown"}, return_message=True)
