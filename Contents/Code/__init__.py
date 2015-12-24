@@ -221,7 +221,7 @@ def AddShow(tvdbid, useCustomSettings=False):
     params = [{"key":"cmd", "value":"show.addnew"},{"key":"tvdbid","value":tvdbid}]
     if useCustomSettings:
         for key, value in Dict['DefaultSettings'].iteritems():
-            if key in ['lang','location','season_folders','status','future_show_paused','location']:
+            if key in ['lang','location','flatten_folders','status','future_show_paused','location']:
                 params.append({'key':key,'value':value})
             else:
                 params.append({'key':key,'value':'|'.join(value)})
@@ -247,14 +247,14 @@ def CustomAddShow(tvdbid):
     oc.add(PopupDirectoryObject(key=Callback(StatusSetting), title="Status of previous episodes: [%s]" % Dict['DefaultSettings']['status']))
     oc.add(PopupDirectoryObject(key=Callback(RootDirSetting), title="Root Directory"))
     try:
-        if Dict['DefaultSettings']['season_folders'] == 1:
-            season_folders = "Yes"
+        if Dict['DefaultSettings']['flatten_folders'] == 1:
+            flatten_folders = "Yes"
         else:
-            season_folders = "No"
+            flatten_folders = "No"
     except:
-        season_folders = "?"
-    oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Use season Folders [%s]" % season_folders))
-            
+        flatten_folders = "?"
+    oc.add(PopupDirectoryObject(key=Callback(SeasonFolderSetting), title="Flatten Folders [%s]" % flatten_folders))
+
     oc.add(DirectoryObject(key=Callback(AddShow, tvdbid=tvdbid, useCustomSettings=True), title="Add show with these settings"))
     
     return oc
@@ -381,13 +381,13 @@ def ChangeStatus(status, value):
 @route(PREFIX + '/seasonfolder')
 def SeasonFolderSetting():
     oc = ObjectContainer(title2="Status", no_cache=True)
-    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['season_folder']['allowedValues']:
+    for option in API_Request([{"key":"cmd", "value":"show.addnew"},{"key":"help", "value":"1"}])['data']['optionalParameters']['flatten_folders']['allowedValues']:
         if option:
             label = "Yes"
         else:
             label = "No"
         try:
-            if option in Dict['DefaultSettings']['season_folder']:
+            if option in Dict['DefaultSettings']['flatten_folders']:
                 oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="False"), title = "%s [*]" % label))
             else:
                 oc.add(DirectoryObject(key=Callback(ChangeSeasonFolder, option=option, value="True"), title = "%s [ ]" % label))
@@ -399,9 +399,9 @@ def SeasonFolderSetting():
 @route(PREFIX + '/changeseasonfolder')
 def ChangeSeasonFolder(option, value):
     if value == "True":
-        Dict['DefaultSettings']['season_folder'] = option
+        Dict['DefaultSettings']['flatten_folders'] = option
     else:
-        Dict['DefaultSettings']['season_folder'] = ''
+        Dict['DefaultSettings']['flatten_folders'] = ''
     Dict['settings_modified'] = True
     Dict.Save()
     return
