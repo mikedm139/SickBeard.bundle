@@ -673,6 +673,9 @@ def SetEpisodeStatus(tvdbid, season, episode, status, entire_season=False):
                         'season': season, 'episode': episode, 'status': status})
     message = data['message']
 
+    if 'data' in data and len(data['data']):
+        message = data['data'][0]['message']
+
     if entire_season:
         if data['result'] == 'success':
             return True
