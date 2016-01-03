@@ -1,3 +1,5 @@
+import urllib
+
 ####################################################################################################
 
 PREFIX = "/video/sickbeard"
@@ -758,11 +760,12 @@ def API_Request(params={}, return_message=False):
     '''use the given args to make an API request and return the JSON'''
 
     '''start with the base API url'''
-    request_url = API_URL()
+    request_url = "%s?%s" % (API_URL(), urllib.urlencode(params))
+
 
     '''send the request and confirm success'''
-    data = JSON.ObjectFromURL(request_url, values=params, timeout=30, cacheTime=0)
     Log.Debug("Request: %s" % "&".join("%s=%s" % (key, value) for key, value in params.iteritems()))
+    data = JSON.ObjectFromURL(request_url, timeout=30, cacheTime=0)
 
     if return_message:
         return ObjectContainer(header=NAME, message=data['message'])
