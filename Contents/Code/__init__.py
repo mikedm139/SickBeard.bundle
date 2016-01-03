@@ -116,7 +116,8 @@ def ComingEpisodes(timeframe=""):
             oc.add(PopupDirectoryObject(key=Callback(EpisodePopup,
                                                      episode=episode['episode'],
                                                      tvdbid=episode[IndexerField()],
-                                                     season=episode['season']),
+                                                     season=episode['season'],
+                                                     unaired=True),
                                         title=title,
                                         summary=summary,
                                         thumb=Callback(GetThumb, tvdbid=episode[IndexerField()])))
@@ -219,7 +220,7 @@ def SeriesPopup(tvdbid, show):
 
 ####################################################################################################
 @route(PREFIX + '/episode')
-def EpisodePopup(episode=None, tvdbid=None, season=None):
+def EpisodePopup(episode=None, tvdbid=None, season=None, unaired=False):
     '''display a popup menu with the option to force a search for the selected episode/series'''
     oc = ObjectContainer()
     if not season:
@@ -233,6 +234,11 @@ def EpisodePopup(episode=None, tvdbid=None, season=None):
     oc.add(DirectoryObject(key=Callback(EpisodeRefresh, tvdbid=tvdbid, season=season,
                                         episode=episode),
                            title="Force search for this episode"))
+
+    # Bail early if it is an unaired episode as we can't change status on it
+    if unaired:
+        return oc
+
     results = API_Request({"cmd": "episode.setstatus", "help": "1"})
     for status in results['data']['requiredParameters']['status']['allowedValues']:
         oc.add(DirectoryObject(key=Callback(SetEpisodeStatus, tvdbid=tvdbid, season=season,
