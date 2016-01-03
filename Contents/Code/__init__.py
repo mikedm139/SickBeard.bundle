@@ -754,7 +754,7 @@ def Get_SB_URL(reset=False):
 # @route(PREFIX + '/apiurl')
 def API_URL():
     '''build and return the base url for all SickBeard API requests'''
-    return Get_SB_URL() + '/api/%s/' % Prefs['sbAPI']
+    return Get_SB_URL() + '/api/%s/?' % Prefs['sbAPI']
 
 
 ####################################################################################################
@@ -763,7 +763,7 @@ def API_Request(params={}, return_message=False):
     '''use the given args to make an API request and return the JSON'''
 
     '''start with the base API url'''
-    request_url = "%s?%s" % (API_URL(), urllib.urlencode(params))
+    request_url = "%s%s" % (API_URL(), urllib.urlencode(params))
 
 
     '''send the request and confirm success'''
