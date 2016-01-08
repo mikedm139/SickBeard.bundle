@@ -1,40 +1,40 @@
 [
     {
-        "id": "sbUser",
-        "label": "Username",
+        "id": "sbAPI",
+        "label": "API Key",
         "type": "text",
-        "default": "" 
-    },
-    {
-        "id": "sbPass",
-        "label": "Password",
-        "type": "text",
-        "option": "hidden",
-        "default": "" 
+        "default": ""
     },
     {
         "id": "sbIP",
         "label": "SickBeardIP",
         "type": "text",
-        "default": "localhost" 
+        "default": "localhost"
     },
     {
         "id": "sbPort",
         "label": "SickBeardPort",
         "type": "text",
-        "default": "8081" 
+        "default": "8081"
     },
     {
         "id": "webroot",
         "label": "Webroot",
         "type": "text",
-        "default": "" 
+        "default": ""
     },
     {
         "id": "https",
         "label": "Use HTTPS",
         "type": "bool",
-        "default": "False" 
+        "default": "False"
+    },
+    {
+        "id": "Fork",
+        "label": "Which fork of Sickbeard are you using?",
+        "type": "enum",
+        "values": ["Sickbeard", "SickRage"],
+        "default": "Sickbeard"
     },
     {
         "id": "TVDBlang",
